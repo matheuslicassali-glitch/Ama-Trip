@@ -13,6 +13,7 @@ const Trip = () => {
         comments: ''
     });
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
+    const [isEndingTrip, setIsEndingTrip] = useState(false);
 
     const handleStart = (e) => {
         e.preventDefault();
@@ -71,12 +72,46 @@ const Trip = () => {
 
     const handleEnd = (e) => {
         e.preventDefault();
+
+        if ("geolocation" in navigator) {
+            setIsEndingTrip(true);
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    let locationString = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
+
+                    try {
+                        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+                        const data = await response.json();
+                        if (data.display_name) {
+                            locationString = data.display_name.split(',').slice(0, 3).join(',');
+                        }
+                    } catch (err) {
+                        console.error("Erro ao converter coordenadas em endereço", err);
+                    }
+
+                    completeEnd(locationString);
+                },
+                (error) => {
+                    console.error("Erro GPS:", error);
+                    alert("Não foi possível obter sua localização via GPS para o encerramento.");
+                    completeEnd(formData.location);
+                },
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+            );
+        } else {
+            completeEnd(formData.location);
+        }
+    };
+
+    const completeEnd = (finalLocation) => {
         endTrip({
             finalMileage: formData.finalMileage,
-            destination: formData.location,
+            destination: finalLocation,
             comments: formData.comments,
         });
         setFormData({ ...formData, finalMileage: '', comments: '' });
+        setIsEndingTrip(false);
     };
 
     if (!activeTrip) {
@@ -227,10 +262,20 @@ const Trip = () => {
 
                 <button
                     type="submit"
-                    className="w-full bg-green-600 py-4 rounded-xl font-bold text-white shadow-lg shadow-green-500/20 hover:bg-green-500 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
+                    disabled={isEndingTrip}
+                    className={`w-full bg-green-600 py-4 rounded-xl font-bold text-white shadow-lg shadow-green-500/20 hover:bg-green-500 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2 ${isEndingTrip ? 'opacity-70 cursor-not-allowed' : ''}`}
                 >
-                    <CheckCircle2 size={20} />
-                    <span>FINALIZAR VIAGEM</span>
+                    {isEndingTrip ? (
+                        <>
+                            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                            <span>OBTENDO LOCALIZAÇÃO FINAL...</span>
+                        </>
+                    ) : (
+                        <>
+                            <CheckCircle2 size={20} />
+                            <span>FINALIZAR VIAGEM</span>
+                        </>
+                    )}
                 </button>
             </form>
         </div>
