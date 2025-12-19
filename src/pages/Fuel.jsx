@@ -93,11 +93,11 @@ const Fuel = () => {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Foto do Comprovante</label>
-                    <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
+                    <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
                         <Receipt size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
                         <p className="text-sm text-muted-foreground">Carregar foto do comprovante para contabilidade</p>
                         <input type="file" accept="image/*" className="hidden" />
-                    </div>
+                    </label>
                 </div>
 
                 <button

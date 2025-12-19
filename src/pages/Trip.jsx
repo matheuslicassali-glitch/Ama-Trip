@@ -92,11 +92,11 @@ const Trip = () => {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">Foto do Odômetro (no início)</label>
-                        <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
+                        <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
                             <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
                             <p className="text-sm text-muted-foreground">Toque para carregar ou tirar foto</p>
                             <input type="file" accept="image/*" className="hidden" />
-                        </div>
+                        </label>
                     </div>
 
                     <button
@@ -171,11 +171,11 @@ const Trip = () => {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Foto do Odômetro (no final)</label>
-                    <div className="border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
+                    <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
                         <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
                         <p className="text-sm text-muted-foreground">Toque para carregar a foto final do odômetro</p>
                         <input type="file" accept="image/*" className="hidden" />
-                    </div>
+                    </label>
                 </div>
 
                 <button
