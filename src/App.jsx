@@ -1,0 +1,29 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { AppProvider } from './context/AppContext';
+import Layout from './components/Layout';
+import Dashboard from './pages/Dashboard';
+import Trip from './pages/Trip';
+import History from './pages/History';
+import Fuel from './pages/Fuel';
+import Registry from './pages/Registry';
+
+function App() {
+  return (
+    <Router>
+      <AppProvider>
+        <Layout>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/trip" element={<Trip />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/fuel" element={<Fuel />} />
+            <Route path="/registry" element={<Registry />} />
+          </Routes>
+        </Layout>
+      </AppProvider>
+    </Router>
+  );
+}
+
+export default App;
