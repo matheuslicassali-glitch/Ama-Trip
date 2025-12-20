@@ -25,6 +25,11 @@ export const AppProvider = ({ children }) => {
 
     // Fetch initial data from Supabase
     useEffect(() => {
+        if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+            setLoading(false);
+            return;
+        }
+
         fetchInitialData();
 
         // Setup Realtime subscriptions
@@ -152,6 +157,23 @@ export const AppProvider = ({ children }) => {
         if (error) throw error;
         await fetchFuelRecords();
     };
+
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+        return (
+            <div className="min-h-screen bg-background flex items-center justify-center p-4">
+                <div className="glass-morphism p-8 max-w-md w-full text-center border-red-500/30">
+                    <h2 className="text-2xl font-bold text-red-500 mb-4">Configuração Pendente</h2>
+                    <p className="text-foreground/70 mb-6">
+                        As variáveis de ambiente do Supabase não foram encontradas.
+                        Por favor, configure <strong>VITE_SUPABASE_URL</strong> e <strong>VITE_SUPABASE_ANON_KEY</strong> no painel da Vercel.
+                    </p>
+                    <div className="bg-white/5 p-4 rounded-xl text-left text-xs font-mono text-blue-300">
+                        Acesse: Vercel Project > Settings > Environment Variables
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <AppContext.Provider value={{
