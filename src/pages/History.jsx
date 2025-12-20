@@ -66,9 +66,17 @@ const History = () => {
                                         <Navigation size={24} className="mr-2" />
                                         +{parseFloat(trip.end_km) - parseFloat(trip.start_km)} km
                                     </div>
-                                    <div className="flex items-center text-muted-foreground">
-                                        <MapPin size={16} className="mr-2" />
-                                        {trip.destination || 'Rio de Janeiro, RJ'}
+                                    <div className="flex flex-col md:items-end gap-1 text-sm text-muted-foreground">
+                                        <div className="flex items-center">
+                                            <span className="text-[10px] uppercase font-bold text-blue-400 mr-2">Início:</span>
+                                            <MapPin size={14} className="mr-1" />
+                                            {trip.origin || 'Não registrado'}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <span className="text-[10px] uppercase font-bold text-green-400 mr-2">Fim:</span>
+                                            <MapPin size={14} className="mr-1" />
+                                            {trip.destination || 'Não registrado'}
+                                        </div>
                                     </div>
                                     {trip.observations && (
                                         <div className="mt-2 text-sm italic text-muted-foreground bg-white/5 p-3 rounded-lg max-w-xs">
