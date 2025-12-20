@@ -27,27 +27,27 @@ const History = () => {
                                         </span>
                                         <div className="flex items-center text-sm text-muted-foreground">
                                             <Calendar size={14} className="mr-2" />
-                                            {new Date(trip.endTime).toLocaleString()}
+                                            {new Date(trip.end_time).toLocaleString()}
                                         </div>
                                     </div>
 
                                     <div>
-                                        <h3 className="text-xl font-bold">{trip.carModel}</h3>
+                                        <h3 className="text-xl font-bold">{trip.cars?.model || 'Veículo Removido'}</h3>
                                         <p className="text-muted-foreground flex items-center mt-1">
                                             <User size={16} className="mr-2" />
-                                            {trip.driverName}
+                                            {trip.drivers?.name || 'Motorista Removido'}
                                         </p>
                                     </div>
 
                                     <div className="flex items-center gap-4">
                                         <div className="bg-white/5 px-4 py-2 rounded-xl">
                                             <p className="text-xs text-muted-foreground uppercase font-bold">Inicial</p>
-                                            <p className="font-mono text-lg">{trip.initialMileage} km</p>
+                                            <p className="font-mono text-lg">{trip.start_km} km</p>
                                         </div>
                                         <ArrowRight className="text-muted-foreground" size={20} />
                                         <div className="bg-white/5 px-4 py-2 rounded-xl text-right">
                                             <p className="text-xs text-muted-foreground uppercase font-bold">Final</p>
-                                            <p className="font-mono text-lg">{trip.finalMileage} km</p>
+                                            <p className="font-mono text-lg">{trip.end_km} km</p>
                                         </div>
                                     </div>
                                 </div>
@@ -55,15 +55,15 @@ const History = () => {
                                 <div className="flex flex-col md:items-end gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
                                     <div className="flex items-center text-primary font-bold text-2xl">
                                         <Navigation size={24} className="mr-2" />
-                                        +{parseInt(trip.finalMileage) - parseInt(trip.initialMileage)} km
+                                        +{parseFloat(trip.end_km) - parseFloat(trip.start_km)} km
                                     </div>
                                     <div className="flex items-center text-muted-foreground">
                                         <MapPin size={16} className="mr-2" />
-                                        {trip.destination || 'Área Metropolitana do RJ'}
+                                        {trip.destination || 'Rio de Janeiro, RJ'}
                                     </div>
-                                    {trip.comments && (
+                                    {trip.observations && (
                                         <div className="mt-2 text-sm italic text-muted-foreground bg-white/5 p-3 rounded-lg max-w-xs">
-                                            "{trip.comments}"
+                                            "{trip.observations}"
                                         </div>
                                     )}
                                 </div>

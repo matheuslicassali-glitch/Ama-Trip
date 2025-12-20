@@ -3,22 +3,22 @@ import { useAppContext } from '../context/AppContext';
 import { Camera, MapPin, Navigation, CheckCircle2 } from 'lucide-react';
 
 const Trip = () => {
-    const { activeTrip, startTrip, endTrip, cars, drivers } = useAppContext();
+    const { activeTrip, startTrip, endTrip, cars, drivers, loading } = useAppContext();
     const [formData, setFormData] = useState({
-        carId: '',
-        driverId: '',
-        initialMileage: '',
-        finalMileage: '',
+        car_id: '',
+        driver_id: '',
+        start_km: '',
+        end_km: '',
         location: 'Rio de Janeiro, RJ',
-        comments: ''
+        observations: ''
     });
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
     const [isEndingTrip, setIsEndingTrip] = useState(false);
 
     const handleStart = (e) => {
         e.preventDefault();
-        const car = cars.find(c => c.id === parseInt(formData.carId));
-        const driver = drivers.find(d => d.id === parseInt(formData.driverId));
+        const car = cars.find(c => c.id === formData.car_id);
+        const driver = drivers.find(d => d.id === formData.driver_id);
 
         if (!car || !driver) {
             alert('Por favor, selecione um carro e um motorista primeiro!');
@@ -33,8 +33,6 @@ const Trip = () => {
                     let locationString = `Lat: ${latitude.toFixed(4)}, Lon: ${longitude.toFixed(4)}`;
 
                     try {
-                        // Opcional: Aqui poderíamos usar uma API de geocoding reverso para pegar o nome da rua/bairro
-                        // Por enquanto, salvaremos as coordenadas para precisão total.
                         const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
                         const data = await response.json();
                         if (data.display_name) {
@@ -60,12 +58,10 @@ const Trip = () => {
 
     const completeStart = (car, driver, finalLocation) => {
         startTrip({
-            carId: car.id,
-            carModel: car.model,
-            driverId: driver.id,
-            driverName: driver.name,
-            initialMileage: formData.initialMileage,
-            startLocation: finalLocation
+            car_id: car.id,
+            driver_id: driver.id,
+            start_km: parseFloat(formData.start_km),
+            origin: finalLocation
         });
         setIsFetchingLocation(false);
     };
@@ -106,13 +102,19 @@ const Trip = () => {
 
     const completeEnd = (finalLocation) => {
         endTrip({
-            finalMileage: formData.finalMileage,
+            end_km: parseFloat(formData.end_km),
             destination: finalLocation,
-            comments: formData.comments,
+            observations: formData.observations,
         });
-        setFormData({ ...formData, finalMileage: '', comments: '' });
+        setFormData({ ...formData, end_km: '', observations: '' });
         setIsEndingTrip(false);
     };
+
+    if (loading) {
+        return <div className="flex items-center justify-center p-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>;
+    }
 
     if (!activeTrip) {
         return (
@@ -128,24 +130,24 @@ const Trip = () => {
                             <label className="text-sm font-medium text-muted-foreground">Selecionar Veículo</label>
                             <select
                                 required
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
-                                value={formData.carId}
-                                onChange={(e) => setFormData({ ...formData, carId: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                                value={formData.car_id}
+                                onChange={(e) => setFormData({ ...formData, car_id: e.target.value })}
                             >
-                                <option value="">Escolher Carro</option>
-                                {cars.map(car => <option key={car.id} value={car.id}>{car.model} ({car.plate})</option>)}
+                                <option value="" className="bg-slate-900">Escolher Carro</option>
+                                {cars.map(car => <option key={car.id} value={car.id} className="bg-slate-900">{car.model} ({car.plate})</option>)}
                             </select>
                         </div>
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-muted-foreground">Selecionar Motorista</label>
                             <select
                                 required
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
-                                value={formData.driverId}
-                                onChange={(e) => setFormData({ ...formData, driverId: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                                value={formData.driver_id}
+                                onChange={(e) => setFormData({ ...formData, driver_id: e.target.value })}
                             >
-                                <option value="">Escolher Motorista</option>
-                                {drivers.map(driver => <option key={driver.id} value={driver.id}>{driver.name}</option>)}
+                                <option value="" className="bg-slate-900">Escolher Motorista</option>
+                                {drivers.map(driver => <option key={driver.id} value={driver.id} className="bg-slate-900">{driver.name}</option>)}
                             </select>
                         </div>
                     </div>
@@ -156,9 +158,9 @@ const Trip = () => {
                             required
                             type="number"
                             placeholder="ex: 124500"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
-                            value={formData.initialMileage}
-                            onChange={(e) => setFormData({ ...formData, initialMileage: e.target.value })}
+                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                            value={formData.start_km}
+                            onChange={(e) => setFormData({ ...formData, start_km: e.target.value })}
                         />
                     </div>
 
@@ -193,6 +195,9 @@ const Trip = () => {
         );
     }
 
+    const currentCar = cars.find(c => c.id === activeTrip.car_id);
+    const currentDriver = drivers.find(d => d.id === activeTrip.driver_id);
+
     return (
         <div className="max-w-2xl mx-auto space-y-6 animate-in zoom-in-95 duration-500">
             <header className="flex justify-between items-center">
@@ -203,12 +208,12 @@ const Trip = () => {
                             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                             <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                         </span>
-                        <span>{activeTrip.carModel} • {activeTrip.driverName}</span>
+                        <span>{currentCar?.model} • {currentDriver?.name}</span>
                     </p>
                 </div>
                 <div className="text-right">
                     <p className="text-xs text-muted-foreground uppercase tracking-widest">Iniciado às</p>
-                    <p className="font-mono">{new Date(activeTrip.startTime).toLocaleTimeString()}</p>
+                    <p className="font-mono">{new Date(activeTrip.start_time).toLocaleTimeString()}</p>
                 </div>
             </header>
 
@@ -219,9 +224,9 @@ const Trip = () => {
                         required
                         type="number"
                         placeholder="ex: 124650"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
-                        value={formData.finalMileage}
-                        onChange={(e) => setFormData({ ...formData, finalMileage: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                        value={formData.end_km}
+                        onChange={(e) => setFormData({ ...formData, end_km: e.target.value })}
                     />
                 </div>
 
@@ -233,7 +238,7 @@ const Trip = () => {
                             required
                             type="text"
                             placeholder="ex: Barra da Tijuca, RJ"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
+                            className="w-full bg-white/5 border border-white/10 rounded-xl pl-12 pr-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
                             value={formData.location}
                             onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                         />
@@ -245,9 +250,9 @@ const Trip = () => {
                     <textarea
                         rows="3"
                         placeholder="Nível de óleo ok? Algum problema?"
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all resize-none"
-                        value={formData.comments}
-                        onChange={(e) => setFormData({ ...formData, comments: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all resize-none text-white"
+                        value={formData.observations}
+                        onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
                     ></textarea>
                 </div>
 

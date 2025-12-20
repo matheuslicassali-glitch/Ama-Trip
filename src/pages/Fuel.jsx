@@ -3,24 +3,36 @@ import { useAppContext } from '../context/AppContext';
 import { Fuel as FuelIcon, Receipt, Camera, CheckCircle } from 'lucide-react';
 
 const Fuel = () => {
-    const { cars, addFuelRecord } = useAppContext();
+    const { cars, addFuelRecord, loading } = useAppContext();
     const [formData, setFormData] = useState({
-        carId: '',
+        car_id: '',
         liters: '',
-        totalValue: '',
-        odometer: '',
+        value: '',
+        km: '',
     });
     const [submitted, setSubmitted] = useState(false);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        addFuelRecord(formData);
+        addFuelRecord({
+            car_id: formData.car_id,
+            liters: parseFloat(formData.liters),
+            value: parseFloat(formData.value),
+            km: parseFloat(formData.km),
+            date: new Date().toISOString()
+        });
         setSubmitted(true);
         setTimeout(() => {
             setSubmitted(false);
-            setFormData({ carId: '', liters: '', totalValue: '', odometer: '' });
+            setFormData({ car_id: '', liters: '', value: '', km: '' });
         }, 3000);
     };
+
+    if (loading) {
+        return <div className="flex items-center justify-center p-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+        </div>;
+    }
 
     if (submitted) {
         return (
@@ -49,12 +61,12 @@ const Fuel = () => {
                     <label className="text-sm font-medium text-muted-foreground">Veículo</label>
                     <select
                         required
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
-                        value={formData.carId}
-                        onChange={(e) => setFormData({ ...formData, carId: e.target.value })}
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                        value={formData.car_id}
+                        onChange={(e) => setFormData({ ...formData, car_id: e.target.value })}
                     >
-                        <option value="">Escolher Veículo</option>
-                        {cars.map(car => <option key={car.id} value={car.id}>{car.model} ({car.plate})</option>)}
+                        <option value="" className="bg-slate-900">Escolher Veículo</option>
+                        {cars.map(car => <option key={car.id} value={car.id} className="bg-slate-900">{car.model} ({car.plate})</option>)}
                     </select>
                 </div>
 
@@ -67,7 +79,7 @@ const Fuel = () => {
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
                                 value={formData.liters}
                                 onChange={(e) => setFormData({ ...formData, liters: e.target.value })}
                             />
@@ -82,13 +94,25 @@ const Fuel = () => {
                                 type="number"
                                 step="0.01"
                                 placeholder="0.00"
-                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all font-mono"
-                                value={formData.totalValue}
-                                onChange={(e) => setFormData({ ...formData, totalValue: e.target.value })}
+                                className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all font-mono text-white"
+                                value={formData.value}
+                                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
                             />
                             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-bold">R$</span>
                         </div>
                     </div>
+                </div>
+
+                <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground">Quilometragem Atual (km)</label>
+                    <input
+                        required
+                        type="number"
+                        placeholder="ex: 124500"
+                        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                        value={formData.km}
+                        onChange={(e) => setFormData({ ...formData, km: e.target.value })}
+                    />
                 </div>
 
                 <div className="space-y-2">
