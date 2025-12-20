@@ -15,6 +15,7 @@ export const AppProvider = ({ children }) => {
     const [drivers, setDrivers] = useState([]);
     const [trips, setTrips] = useState([]);
     const [fuelRecords, setFuelRecords] = useState([]);
+    const [serviceOrders, setServiceOrders] = useState([]);
     const [activeTrip, setActiveTrip] = useState(null);
     const [loading, setLoading] = useState(true);
 
@@ -51,6 +52,7 @@ export const AppProvider = ({ children }) => {
             fetchDrivers(),
             fetchTrips(),
             fetchFuelRecords(),
+            fetchServiceOrders(),
             fetchActiveTrip()
         ]);
         setLoading(false);
@@ -87,6 +89,12 @@ export const AppProvider = ({ children }) => {
         const { data, error } = await supabase.from('fuel_records').select('*').order('date', { ascending: false });
         if (error) console.error('Error fetching fuel records:', error);
         else setFuelRecords(data);
+    };
+
+    const fetchServiceOrders = async () => {
+        const { data, error } = await supabase.from('service_orders').select('*').order('created_at', { ascending: false });
+        if (error) console.error('Error fetching service orders:', error);
+        else setServiceOrders(data);
     };
 
     const fetchActiveTrip = async () => {
@@ -158,6 +166,16 @@ export const AppProvider = ({ children }) => {
         await fetchFuelRecords();
     };
 
+    const addServiceOrder = async (order) => {
+        const { error } = await supabase.from('service_orders').insert([{
+            ...order,
+            status: 'pending',
+            created_at: new Date().toISOString()
+        }]);
+        if (error) throw error;
+        await fetchServiceOrders();
+    };
+
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -177,8 +195,8 @@ export const AppProvider = ({ children }) => {
 
     return (
         <AppContext.Provider value={{
-            cars, drivers, trips, activeTrip, user, fuelRecords, loading,
-            addCar, addDriver, startTrip, endTrip, addFuelRecord, login, logout,
+            cars, drivers, trips, activeTrip, user, fuelRecords, serviceOrders, loading,
+            addCar, addDriver, startTrip, endTrip, addFuelRecord, addServiceOrder, login, logout,
             refreshData: fetchInitialData
         }}>
             {children}
