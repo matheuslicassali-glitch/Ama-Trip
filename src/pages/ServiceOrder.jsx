@@ -10,14 +10,13 @@ const ServiceOrder = () => {
         requesting_company: '',
         client_name: '',
         description: '',
-        contact_info: ''
     });
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             await addServiceOrder(formData);
-            setFormData({ requesting_company: '', client_name: '', description: '', contact_info: '' });
+            setFormData({ requesting_company: '', client_name: '', description: '' });
             setIsCreating(false);
         } catch (error) {
             alert('Erro ao criar Ordem de Serviço: ' + error.message);
@@ -99,14 +98,12 @@ const ServiceOrder = () => {
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-sm font-medium text-muted-foreground">Contato / Telefone</label>
-                        <input
-                            type="text"
-                            placeholder="(21) 99999-9999"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
-                            value={formData.contact_info}
-                            onChange={(e) => setFormData({ ...formData, contact_info: e.target.value })}
-                        />
+                        <label className="text-sm font-medium text-muted-foreground">Anexar Foto da Ordem / Documento</label>
+                        <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
+                            <FileText size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                            <p className="text-sm text-muted-foreground">Clique para tirar foto ou anexar documento</p>
+                            <input type="file" accept="image/*" className="hidden" />
+                        </label>
                     </div>
 
                     <button
@@ -167,7 +164,6 @@ const ServiceOrder = () => {
                                         <Printer size={20} />
                                     </button>
                                     <div className="text-right">
-                                        <p className="text-xs text-muted-foreground">{os.contact_info || 'Sem contato'}</p>
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${os.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'} uppercase font-bold mt-2 inline-block`}>
                                             {os.status === 'pending' ? 'Pendente' : 'Finalizado'}
                                         </span>
@@ -201,13 +197,18 @@ const ServiceOrder = () => {
                                                 <p className="text-lg font-bold">{os.client_name}</p>
                                             </div>
                                             <div className="border-b border-black pb-2">
-                                                <p className="text-[10px] uppercase font-bold">Contato</p>
-                                                <p className="text-lg font-bold">{os.contact_info || '---'}</p>
+                                                <p className="text-[10px] uppercase font-bold">Status da Ordem</p>
+                                                <p className="text-lg font-bold">{os.status === 'pending' ? 'PENDENTE' : 'CONCLUÍDO'}</p>
                                             </div>
                                         </div>
-                                        <div className="border-2 border-black p-4 bg-gray-50">
-                                            <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
-                                            <p className="text-sm">{os.description}</p>
+                                        <div className="border-2 border-black p-4 bg-gray-50 flex flex-col justify-between">
+                                            <div>
+                                                <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
+                                                <p className="text-sm">{os.description}</p>
+                                            </div>
+                                            <div className="mt-4 border-t border-dashed border-gray-300 pt-2">
+                                                <p className="text-[8px] uppercase text-gray-400">Anexo de Imagem vinculado ao registro digital</p>
+                                            </div>
                                         </div>
                                     </div>
 
