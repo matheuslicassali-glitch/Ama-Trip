@@ -1,18 +1,27 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
-import { History as HistoryIcon, MapPin, Calendar, ArrowRight } from 'lucide-react';
+import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer } from 'lucide-react';
 
 const History = () => {
     const { trips } = useAppContext();
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
-            <header>
-                <h2 className="text-3xl font-bold flex items-center gap-3">
-                    <HistoryIcon className="text-primary" />
-                    Histórico de Viagens
-                </h2>
-                <p className="text-muted-foreground">Veja todas as missões passadas e detalhes dos registros.</p>
+            <header className="flex justify-between items-center print:hidden">
+                <div>
+                    <h2 className="text-3xl font-bold flex items-center gap-3">
+                        <HistoryIcon className="text-primary" />
+                        Histórico de Viagens
+                    </h2>
+                    <p className="text-muted-foreground">Veja todas as missões passadas e detalhes dos registros.</p>
+                </div>
+                <button
+                    onClick={() => window.print()}
+                    className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-xl border border-white/10 transition-all font-medium"
+                >
+                    <Printer size={18} />
+                    Imprimir
+                </button>
             </header>
 
             {trips.length > 0 ? (

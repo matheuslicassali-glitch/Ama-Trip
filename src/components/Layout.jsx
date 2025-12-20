@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Car, User, Navigation, Fuel, History, LogIn, LogOut } from 'lucide-react';
+import { LayoutDashboard, Car, User, Navigation, Fuel, History, LogIn, LogOut, FileText } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
 
 const Layout = ({ children }) => {
@@ -13,6 +13,7 @@ const Layout = ({ children }) => {
         { path: '/trip', icon: Navigation, label: 'Viagem Atual' },
         { path: '/history', icon: History, label: 'Histórico' },
         { path: '/fuel', icon: Fuel, label: 'Abastecimento' },
+        { path: '/reports', icon: FileText, label: 'Relatórios' },
         { path: '/registry', icon: Car, label: 'Cadastro' },
     ];
 

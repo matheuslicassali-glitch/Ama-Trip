@@ -9,6 +9,8 @@ import Fuel from './pages/Fuel';
 import Registry from './pages/Registry';
 import Login from './pages/Login';
 
+import Reports from './pages/Reports';
+
 function App() {
   return (
     <Router>
@@ -20,6 +22,7 @@ function App() {
             <Route path="/history" element={<History />} />
             <Route path="/fuel" element={<Fuel />} />
             <Route path="/registry" element={<Registry />} />
+            <Route path="/reports" element={<Reports />} />
             <Route path="/login" element={<Login />} />
           </Routes>
         </Layout>
