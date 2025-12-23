@@ -11,15 +11,16 @@ import {
     Image as ImageIcon,
     Download,
     ChevronRight,
-    Filter
+    Filter,
+    ClipboardList
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const Reports = () => {
-    const { trips, fuelRecords, cars, drivers, loading } = useAppContext();
+    const { trips, fuelRecords, serviceOrders, cars, drivers, loading } = useAppContext();
     const [period, setPeriod] = useState('daily'); // daily, weekly, monthly
-    const [reportType, setReportType] = useState('all'); // all, trips, fuel
+    const [reportType, setReportType] = useState('all'); // all, trips, fuel, serviceOrders
     const printRef = useRef();
 
     if (loading) {
@@ -47,6 +48,10 @@ const Reports = () => {
 
     const filteredFuel = fuelRecords.filter(fuel =>
         isWithinInterval(new Date(fuel.date), interval)
+    );
+
+    const filteredServiceOrders = serviceOrders.filter(so =>
+        isWithinInterval(new Date(so.created_at), interval)
     );
 
     const handlePrint = () => {
@@ -94,13 +99,13 @@ const Reports = () => {
                 </div>
 
                 <div className="flex bg-white/5 p-1 rounded-xl w-fit border border-white/5">
-                    {['all', 'trips', 'fuel'].map((t) => (
+                    {['all', 'trips', 'fuel', 'serviceOrders'].map((t) => (
                         <button
                             key={t}
                             onClick={() => setReportType(t)}
                             className={`px-6 py-2 rounded-lg font-medium transition-all capitalize ${reportType === t ? 'bg-blue-600 text-white shadow-lg' : 'text-muted-foreground hover:text-white'}`}
                         >
-                            {t === 'all' ? 'Tudo' : t === 'trips' ? 'Viagens' : 'Combustível'}
+                            {t === 'all' ? 'Tudo' : t === 'trips' ? 'Viagens' : t === 'fuel' ? 'Combustível' : 'Ordens de Serviço'}
                         </button>
                     ))}
                 </div>
@@ -218,18 +223,82 @@ const Reports = () => {
                                             </div>
 
                                             {/* Receipt Photo Area */}
-                                            <div className="aspect-video bg-white/5 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 group hover:bg-white/10 transition-all cursor-pointer overflow-hidden print:border-gray-300 print:bg-gray-50">
-                                                {/* In a real app, this would show the URL from Supabase Storage */}
-                                                <ImageIcon className="text-muted-foreground/30 group-hover:text-primary transition-colors" size={32} />
-                                                <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/50">Foto do Comprovante</p>
-                                                <div className="hidden print:block text-xs text-gray-400 italic">Espaço para anexo de comprovante</div>
-                                            </div>
+                                            {fuel.receipt_photo ? (
+                                                <div className="mt-4">
+                                                    <p className="text-xs text-muted-foreground uppercase font-bold mb-2 print:text-gray-600">Comprovante</p>
+                                                    <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300">
+                                                        <img
+                                                            src={fuel.receipt_photo}
+                                                            alt="Comprovante de Abastecimento"
+                                                            className="w-full h-auto object-contain max-h-64"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="aspect-video bg-white/5 rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-2 print:border-gray-300 print:bg-gray-50">
+                                                    <ImageIcon className="text-muted-foreground/30" size={32} />
+                                                    <p className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground/50">Sem comprovante anexado</p>
+                                                </div>
+                                            )}
                                         </div>
                                     );
                                 })}
                             </div>
                         ) : (
                             <div className="p-8 text-center glass-morphism rounded-xl text-muted-foreground">Nenhum abastecimento no período selecionado.</div>
+                        )}
+                    </section>
+                )}
+
+                {/* Service Orders Section */}
+                {(reportType === 'all' || reportType === 'serviceOrders') && (
+                    <section className="space-y-4">
+                        <h3 className="text-xl font-bold flex items-center gap-2 border-b border-white/10 pb-2 mt-8 print:text-black print:border-black">
+                            <ClipboardList className="text-orange-500" size={24} />
+                            Ordens de Serviço
+                        </h3>
+                        {filteredServiceOrders.length > 0 ? (
+                            <div className="space-y-4">
+                                {filteredServiceOrders.map((so) => (
+                                    <div key={so.id} className="glass-morphism p-5 rounded-2xl print:border print:border-gray-300 print:bg-white print:text-black break-inside-avoid">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <span className="px-3 py-1 bg-orange-500/10 text-orange-500 text-xs font-bold rounded-full uppercase tracking-widest print:bg-orange-50 print:border print:border-orange-200">
+                                                        OS #{(so.id.substring(0, 5)).toUpperCase()}
+                                                    </span>
+                                                    <span className="text-xs text-muted-foreground print:text-gray-600">
+                                                        {format(new Date(so.created_at), "dd/MM/yyyy HH:mm")}
+                                                    </span>
+                                                </div>
+                                                <p className="font-bold text-lg">{so.requesting_company}</p>
+                                                <p className="text-sm text-muted-foreground print:text-gray-600">Cliente: {so.client_name}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white/5 p-3 rounded-lg mb-4 print:bg-gray-50">
+                                            <p className="text-xs text-muted-foreground uppercase font-bold mb-1 print:text-gray-600">Descrição do Serviço</p>
+                                            <p className="text-sm">{so.description}</p>
+                                        </div>
+
+                                        {/* Service Order Photo */}
+                                        {so.photo_url && (
+                                            <div className="mt-4">
+                                                <p className="text-xs text-muted-foreground uppercase font-bold mb-2 print:text-gray-600">Foto Anexada</p>
+                                                <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300">
+                                                    <img
+                                                        src={so.photo_url}
+                                                        alt="Ordem de Serviço"
+                                                        className="w-full h-auto object-contain max-h-96"
+                                                    />
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-8 text-center glass-morphism rounded-xl text-muted-foreground">Nenhuma ordem de serviço no período selecionado.</div>
                         )}
                     </section>
                 )}
