@@ -169,7 +169,6 @@ export const AppProvider = ({ children }) => {
     const addServiceOrder = async (order) => {
         const { error } = await supabase.from('service_orders').insert([{
             ...order,
-            status: 'pending',
             created_at: new Date().toISOString()
         }]);
         if (error) throw error;

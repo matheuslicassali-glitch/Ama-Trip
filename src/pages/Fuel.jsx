@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { Fuel as FuelIcon, Receipt, Camera, CheckCircle } from 'lucide-react';
 
 const Fuel = () => {
@@ -11,20 +12,59 @@ const Fuel = () => {
         km: '',
     });
     const [submitted, setSubmitted] = useState(false);
+    const [receiptFile, setReceiptFile] = useState(null);
+    const [receiptPreview, setReceiptPreview] = useState('');
 
-    const handleSubmit = (e) => {
+    const handleReceiptChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setReceiptFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setReceiptPreview(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        addFuelRecord({
+        let receiptUrl = '';
+
+        // Upload foto do comprovante se existir
+        if (receiptFile) {
+            try {
+                const fileExt = receiptFile.name.split('.').pop();
+                const fileName = `fuel-receipt-${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('fuel-receipts')
+                    .upload(fileName, receiptFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('fuel-receipts')
+                    .getPublicUrl(fileName);
+
+                receiptUrl = data.publicUrl;
+            } catch (error) {
+                console.error('Erro ao fazer upload da foto:', error);
+                alert('Erro ao fazer upload da foto do comprovante');
+            }
+        }
+
+        await addFuelRecord({
             car_id: formData.car_id,
             liters: parseFloat(formData.liters),
             value: parseFloat(formData.value),
             km: parseFloat(formData.km),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            receipt_photo: receiptUrl
         });
         setSubmitted(true);
         setTimeout(() => {
             setSubmitted(false);
             setFormData({ car_id: '', liters: '', value: '', km: '' });
+            setReceiptFile(null);
+            setReceiptPreview('');
         }, 3000);
     };
 
@@ -117,10 +157,19 @@ const Fuel = () => {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Foto do Comprovante</label>
-                    <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
-                        <Receipt size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <p className="text-sm text-muted-foreground">Carregar foto do comprovante para contabilidade</p>
-                        <input type="file" accept="image/*" className="hidden" />
+                    <label className={`block border-2 border-dashed ${receiptPreview ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group`}>
+                        {receiptPreview ? (
+                            <div className="text-center">
+                                <img src={receiptPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
+                                <p className="text-xs text-primary font-bold">Foto selecionada (Clique para alterar)</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Receipt size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                <p className="text-sm text-muted-foreground">Carregar foto do comprovante para contabilidade</p>
+                            </>
+                        )}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleReceiptChange} />
                     </label>
                 </div>
 

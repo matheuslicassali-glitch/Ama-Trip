@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { Camera, MapPin, Navigation, CheckCircle2 } from 'lucide-react';
 
 const Trip = () => {
@@ -14,6 +15,30 @@ const Trip = () => {
     });
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
     const [isEndingTrip, setIsEndingTrip] = useState(false);
+    const [startOdometerFile, setStartOdometerFile] = useState(null);
+    const [startOdometerPreview, setStartOdometerPreview] = useState('');
+    const [endOdometerFile, setEndOdometerFile] = useState(null);
+    const [endOdometerPreview, setEndOdometerPreview] = useState('');
+
+    const handleStartOdometerChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setStartOdometerFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setStartOdometerPreview(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleEndOdometerChange = (e) => {
+        const file = e.target.files[0];
+        if (file) {
+            setEndOdometerFile(file);
+            const reader = new FileReader();
+            reader.onloadend = () => setEndOdometerPreview(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleStart = (e) => {
         e.preventDefault();
@@ -56,14 +81,41 @@ const Trip = () => {
         }
     };
 
-    const completeStart = (car, driver, finalLocation) => {
-        startTrip({
+    const completeStart = async (car, driver, finalLocation) => {
+        let startOdometerUrl = '';
+
+        // Upload foto do odômetro inicial se existir
+        if (startOdometerFile) {
+            try {
+                const fileExt = startOdometerFile.name.split('.').pop();
+                const fileName = `trip-start-${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('odometer-photos')
+                    .upload(fileName, startOdometerFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('odometer-photos')
+                    .getPublicUrl(fileName);
+
+                startOdometerUrl = data.publicUrl;
+            } catch (error) {
+                console.error('Erro ao fazer upload da foto:', error);
+                alert('Erro ao fazer upload da foto do odômetro');
+            }
+        }
+
+        await startTrip({
             car_id: car.id,
             driver_id: driver.id,
             start_km: parseFloat(formData.start_km),
-            origin: finalLocation
+            origin: finalLocation,
+            start_odometer_photo: startOdometerUrl
         });
         setIsFetchingLocation(false);
+        setStartOdometerFile(null);
+        setStartOdometerPreview('');
     };
 
     const handleEnd = (e) => {
@@ -100,13 +152,40 @@ const Trip = () => {
         }
     };
 
-    const completeEnd = (finalLocation) => {
-        endTrip({
+    const completeEnd = async (finalLocation) => {
+        let endOdometerUrl = '';
+
+        // Upload foto do odômetro final se existir
+        if (endOdometerFile) {
+            try {
+                const fileExt = endOdometerFile.name.split('.').pop();
+                const fileName = `trip-end-${Date.now()}.${fileExt}`;
+                const { error: uploadError } = await supabase.storage
+                    .from('odometer-photos')
+                    .upload(fileName, endOdometerFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('odometer-photos')
+                    .getPublicUrl(fileName);
+
+                endOdometerUrl = data.publicUrl;
+            } catch (error) {
+                console.error('Erro ao fazer upload da foto:', error);
+                alert('Erro ao fazer upload da foto do odômetro');
+            }
+        }
+
+        await endTrip({
             end_km: parseFloat(formData.end_km),
             destination: finalLocation,
             observations: formData.observations,
+            end_odometer_photo: endOdometerUrl
         });
         setFormData({ ...formData, end_km: '', observations: '' });
+        setEndOdometerFile(null);
+        setEndOdometerPreview('');
         setIsEndingTrip(false);
     };
 
@@ -166,10 +245,19 @@ const Trip = () => {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">Foto do Odômetro (no início)</label>
-                        <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
-                            <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                            <p className="text-sm text-muted-foreground">Toque para carregar ou tirar foto</p>
-                            <input type="file" accept="image/*" className="hidden" />
+                        <label className={`block border-2 border-dashed ${startOdometerPreview ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group`}>
+                            {startOdometerPreview ? (
+                                <div className="text-center">
+                                    <img src={startOdometerPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
+                                    <p className="text-xs text-primary font-bold">Foto selecionada (Clique para alterar)</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    <p className="text-sm text-muted-foreground">Toque para carregar ou tirar foto</p>
+                                </>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleStartOdometerChange} />
                         </label>
                     </div>
 
@@ -258,10 +346,19 @@ const Trip = () => {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Foto do Odômetro (no final)</label>
-                    <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
-                        <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                        <p className="text-sm text-muted-foreground">Toque para carregar a foto final do odômetro</p>
-                        <input type="file" accept="image/*" className="hidden" />
+                    <label className={`block border-2 border-dashed ${endOdometerPreview ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group`}>
+                        {endOdometerPreview ? (
+                            <div className="text-center">
+                                <img src={endOdometerPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
+                                <p className="text-xs text-primary font-bold">Foto selecionada (Clique para alterar)</p>
+                            </div>
+                        ) : (
+                            <>
+                                <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                <p className="text-sm text-muted-foreground">Toque para carregar a foto final do odômetro</p>
+                            </>
+                        )}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleEndOdometerChange} />
                     </label>
                 </div>
 

@@ -201,21 +201,14 @@ const ServiceOrder = () => {
                                         <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Descrição do Serviço</p>
                                         <p className="text-sm leading-relaxed text-foreground/90">{os.description}</p>
                                     </div>
-                                </div>
 
-                                <div className="flex flex-col justify-between items-end">
                                     <button
                                         onClick={() => window.print()}
-                                        className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all print:hidden"
+                                        className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all print:hidden mt-4"
                                         title="Imprimir OS"
                                     >
                                         <Printer size={20} />
                                     </button>
-                                    <div className="text-right">
-                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${os.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'} uppercase font-bold mt-2 inline-block`}>
-                                            {os.status === 'pending' ? 'Pendente' : 'Finalizado'}
-                                        </span>
-                                    </div>
                                 </div>
                             </div>
 
