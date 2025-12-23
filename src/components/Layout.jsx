@@ -29,9 +29,14 @@ const Layout = ({ children }) => {
             <nav className="fixed bottom-0 left-0 right-0 md:relative md:w-64 glass-morphism border-t md:border-r border-white/10 z-50">
                 <div className="flex md:flex-col justify-around md:justify-between h-16 md:h-full p-2 md:p-6">
                     <div className="flex md:flex-col justify-around md:justify-start w-full md:space-y-4">
-                        <div className="hidden md:block mb-8">
-                            <h1 className="text-2xl font-bold tracking-tight text-primary">AMA TRIP</h1>
-                            <p className="text-xs text-muted-foreground">Gestão Logística</p>
+                        <div className="hidden md:block mb-8 text-center md:text-left">
+                            <div className="flex items-center gap-3 mb-2">
+                                <img src="/logo.png" alt="AMA TRIP Logo" className="w-10 h-10 object-contain" />
+                                <div>
+                                    <h1 className="text-2xl font-bold tracking-tight text-primary leading-none">AMA TRIP</h1>
+                                    <p className="text-[10px] text-muted-foreground">Gestão Logística</p>
+                                </div>
+                            </div>
                         </div>
 
                         {navItems.map((item) => {
@@ -88,7 +93,8 @@ const Layout = ({ children }) => {
             {/* Main Content */}
             <main className="flex-1 pb-20 md:pb-0 overflow-y-auto">
                 <header className="md:hidden p-4 glass-morphism sticky top-0 z-40 flex justify-between items-center">
-                    <div>
+                    <div className="flex items-center gap-2">
+                        <img src="/logo.png" alt="AMA TRIP Logo" className="w-8 h-8 object-contain" />
                         <h1 className="text-xl font-bold text-primary">AMA TRIP</h1>
                     </div>
                     {user ? (

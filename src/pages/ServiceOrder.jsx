@@ -1,22 +1,61 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
 import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText } from 'lucide-react';
 import { format } from 'date-fns';
 
 const ServiceOrder = () => {
     const { serviceOrders, addServiceOrder, loading, user } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
+    const [file, setFile] = useState(null);
     const [formData, setFormData] = useState({
         requesting_company: '',
         client_name: '',
         description: '',
+        photo_url: '', // Store the URL (either base64/blob for now or remote url)
     });
+
+    const handleFileChange = async (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+
+            // Create local preview
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData({ ...formData, photo_url: reader.result });
+            };
+            reader.readAsDataURL(selectedFile);
+        }
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await addServiceOrder(formData);
-            setFormData({ requesting_company: '', client_name: '', description: '' });
+            let finalPhotoUrl = formData.photo_url;
+
+            // If a new file is active, upload it to Supabase
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('service-orders')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('service-orders')
+                    .getPublicUrl(filePath);
+
+                finalPhotoUrl = data.publicUrl;
+            }
+
+            await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
+            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
+            setFile(null);
             setIsCreating(false);
         } catch (error) {
             alert('Erro ao criar Ordem de Serviço: ' + error.message);
@@ -99,10 +138,19 @@ const ServiceOrder = () => {
 
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">Anexar Foto da Ordem / Documento</label>
-                        <label className="block border-2 border-dashed border-white/10 rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group">
-                            <FileText size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                            <p className="text-sm text-muted-foreground">Clique para tirar foto ou anexar documento</p>
-                            <input type="file" accept="image/*" className="hidden" />
+                        <label className={`block border-2 border-dashed ${formData.photo_url ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group relative overflow-hidden`}>
+                            {formData.photo_url ? (
+                                <div className="text-center">
+                                    <img src={formData.photo_url} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
+                                    <p className="text-xs text-primary font-bold">Imagem selecionada (Clique para alterar)</p>
+                                </div>
+                            ) : (
+                                <>
+                                    <FileText size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                    <p className="text-sm text-muted-foreground">Clique para tirar foto ou anexar documento</p>
+                                </>
+                            )}
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
 
@@ -196,18 +244,26 @@ const ServiceOrder = () => {
                                                 <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
                                                 <p className="text-lg font-bold">{os.client_name}</p>
                                             </div>
-                                            <div className="border-b border-black pb-2">
-                                                <p className="text-[10px] uppercase font-bold">Status da Ordem</p>
-                                                <p className="text-lg font-bold">{os.status === 'pending' ? 'PENDENTE' : 'CONCLUÍDO'}</p>
-                                            </div>
+                                            {/* Status Block Removed for Print View */}
                                         </div>
                                         <div className="border-2 border-black p-4 bg-gray-50 flex flex-col justify-between">
                                             <div>
                                                 <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
                                                 <p className="text-sm">{os.description}</p>
                                             </div>
-                                            <div className="mt-4 border-t border-dashed border-gray-300 pt-2">
-                                                <p className="text-[8px] uppercase text-gray-400">Anexo de Imagem vinculado ao registro digital</p>
+                                            <div className="mt-4 border-t border-dashed border-gray-300 pt-2 text-center">
+                                                {os.photo_url ? (
+                                                    <div className="mt-2">
+                                                        <p className="text-[8px] uppercase text-gray-400 mb-1">Foto Anexada</p>
+                                                        <img
+                                                            src={os.photo_url}
+                                                            alt="Anexo da OS"
+                                                            className="max-h-48 mx-auto object-contain border border-gray-200 rounded"
+                                                        />
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-[8px] uppercase text-gray-400">Anexo de Imagem vinculado ao registro digital</p>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
