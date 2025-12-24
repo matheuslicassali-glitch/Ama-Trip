@@ -438,6 +438,13 @@ const Trip = () => {
                                                     <Printer size={20} />
                                                 </button>
                                                 <button
+                                                    onClick={() => handleEdit(trip)}
+                                                    className="p-3 bg-white/5 rounded-xl hover:bg-blue-500/20 text-muted-foreground hover:text-blue-400 transition-all"
+                                                    title="Editar"
+                                                >
+                                                    <Edit2 size={20} />
+                                                </button>
+                                                <button
                                                     onClick={() => handleDelete(trip.id)}
                                                     className="p-3 bg-white/5 rounded-xl hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-all"
                                                     title="Excluir"
