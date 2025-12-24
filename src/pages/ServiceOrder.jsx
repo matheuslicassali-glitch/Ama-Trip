@@ -364,19 +364,22 @@ const ServiceOrder = () => {
                     body * { visibility: hidden; }
                     .print\\:hidden { display: none !important; }
                     
-                    /* Reset margins to maximize space */
-                    @page { margin: 0; size: auto; }
+                    /* Reset margins */
+                    @page { margin: 0mm; size: auto; }
+                    html, body { height: 100%; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
                     
                     /* Force Print Container to show */
                     div.fixed.inset-0.bg-white { 
                         visibility: visible !important; 
                         display: block !important; 
-                        position: fixed !important; 
-                        inset: 0 !important;
-                        width: 100vw !important;
-                        height: 100vh !important;
+                        position: absolute !important; 
+                        left: 0 !important;
+                        top: 0 !important;
+                        width: 100% !important;
+                        height: 100% !important;
                         z-index: 9999 !important;
                         background: white !important;
+                        overflow: visible !important;
                     }
                     div.fixed.inset-0.bg-white * { visibility: visible !important; }
                 }
