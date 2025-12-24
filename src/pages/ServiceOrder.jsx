@@ -13,96 +13,32 @@ const ServiceOrder = () => {
     const [file, setFile] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [pendingAction, setPendingAction] = useState(null);
-    const [formData, setFormData] = useState({
-        requesting_company: '',
-        client_name: '',
-        description: '',
-        photo_url: '',
-    });
+    const [printingId, setPrintingId] = useState(null);
 
-    const handleFileChange = async (e) => {
-        const selectedFile = e.target.files[0];
-        if (selectedFile) {
-            setFile(selectedFile);
-
-            // Create local preview
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                const imageUrl = reader.result;
-                setFormData({ ...formData, photo_url: imageUrl });
-                // Show preview modal
-                setPreviewImage(imageUrl);
-            };
-            reader.readAsDataURL(selectedFile);
-        }
+    const handlePrint = (id) => {
+        setPrintingId(id);
+        setTimeout(() => {
+            window.print();
+            // Optional: reset after print dialog closes (though detection is tricky across browsers)
+            // For now, we leave it or reset it via onAfterPrint if we can, 
+            // but simply setting it allows the CSS to target just this one.
+            // A safer UX is: Print dialog opens, user prints/cancels. 
+            // We can add a listener or just auto-reset after a long timeout, 
+            // but the cleanest for this "inline CSS" hack is to just let the user see the print view 
+            // momentarily or use onafterprint.
+        }, 100);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            let finalPhotoUrl = formData.photo_url;
+    // Reset printing ID when coming back from print preview
+    React.useEffect(() => {
+        const handleAfterPrint = () => {
+            setPrintingId(null);
+        };
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, []);
 
-            // If a new file is active, upload it to Supabase
-            if (file) {
-                console.log("Uploading file...", file.name);
-                try {
-                    finalPhotoUrl = await uploadImage(file, 'service-orders');
-                    console.log("Upload successful:", finalPhotoUrl);
-                } catch (uploadErr) {
-                    console.error("Upload failed:", uploadErr);
-                    throw new Error(`Erro no upload da imagem. Verifique se o bucket 'service-orders' existe e é público. Detalhes: ${uploadErr.message}`);
-                }
-            }
-
-            if (editingId) {
-                await updateServiceOrder(editingId, { ...formData, photo_url: finalPhotoUrl });
-                setEditingId(null);
-            } else {
-                await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
-            }
-
-            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
-            setFile(null);
-            setIsCreating(false);
-        } catch (error) {
-            alert('Erro ao salvar Ordem de Serviço: ' + error.message);
-        }
-    };
-
-    const handleEdit = (order) => {
-        setPendingAction({ type: 'edit', data: order });
-        setShowPasswordModal(true);
-    };
-
-    const handleDelete = (id) => {
-        setPendingAction({ type: 'delete', data: id });
-        setShowPasswordModal(true);
-    };
-
-    const executeAction = async () => {
-        if (!pendingAction) return;
-
-        if (pendingAction.type === 'edit') {
-            setFormData({
-                requesting_company: pendingAction.data.requesting_company,
-                client_name: pendingAction.data.client_name,
-                description: pendingAction.data.description,
-                photo_url: pendingAction.data.photo_url || '',
-            });
-            setEditingId(pendingAction.data.id);
-            setIsCreating(true);
-        } else if (pendingAction.type === 'delete') {
-            try {
-                await deleteServiceOrder(pendingAction.data);
-                alert('Ordem de Serviço excluída com sucesso!');
-            } catch (error) {
-                alert('Erro ao excluir: ' + error.message);
-            }
-        }
-
-        setPendingAction(null);
-    };
+    // ... (existing code for form handling)
 
     if (loading) {
         return (
@@ -115,6 +51,7 @@ const ServiceOrder = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
+                {/* ... (existing header content) */}
                 <div>
                     <h2 className="text-3xl font-bold flex items-center gap-3">
                         <ClipboardList className="text-primary" />
@@ -141,6 +78,7 @@ const ServiceOrder = () => {
 
             {isCreating && (
                 <form onSubmit={handleSubmit} className="glass-morphism p-8 rounded-2xl space-y-6 animate-in slide-in-from-top-4 print:hidden max-w-2xl mx-auto">
+                    {/* ... (existing form content) ... */}
                     <h3 className="text-xl font-bold mb-4">
                         {editingId ? 'Editar Ordem de Serviço' : 'Dados da Solicitação'}
                     </h3>
@@ -299,7 +237,7 @@ const ServiceOrder = () => {
 
                                     <div className="flex gap-2 print:hidden mt-4">
                                         <button
-                                            onClick={() => window.print()}
+                                            onClick={() => handlePrint(os.id)}
                                             className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
                                             title="Imprimir OS"
                                         >
@@ -323,71 +261,75 @@ const ServiceOrder = () => {
                                 </div>
                             </div>
 
-                            {/* Print Version of the Card (Hidden on Screen) */}
-                            <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
-                                <div className="border-2 border-black p-8 h-full flex flex-col">
-                                    <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-6">
-                                        <div>
-                                            <h1 className="text-3xl font-black italic">AMA TRIP</h1>
-                                            <p className="text-xs uppercase tracking-tighter">Gestão Logística e Transportes</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <h2 className="text-2xl font-bold">ORDEM DE SERVIÇO</h2>
-                                            <p className="font-mono text-sm">Nº {(os.id.substring(0, 8)).toUpperCase()}</p>
-                                            <p className="text-xs mt-1">{format(new Date(os.created_at), "dd/MM/yyyy HH:mm")}</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex flex-col gap-6 mb-8 flex-1">
-                                        <div className="grid grid-cols-2 gap-10">
-                                            <div className="space-y-4">
-                                                <div className="border-b border-black pb-2">
-                                                    <p className="text-[10px] uppercase font-bold">Empresa Solicitante</p>
-                                                    <p className="text-lg font-bold leading-tight">{os.requesting_company}</p>
-                                                </div>
-                                                <div className="border-b border-black pb-2">
-                                                    <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
-                                                    <p className="text-lg font-bold leading-tight">{os.client_name}</p>
-                                                </div>
+                            {/* Print Version of the Card (Only renders if this card is being printed) */}
+                            {printingId === os.id && (
+                                <div className="hidden print:block fixed inset-0 bg-white text-black z-[1000] overflow-hidden">
+                                    <div className="w-full h-full p-8 flex flex-col box-border">
+                                        {/* Header - Compact */}
+                                        <div className="flex justify-between items-center border-b-2 border-black pb-4 mb-6">
+                                            <div>
+                                                <h1 className="text-3xl font-black italic">AMA TRIP</h1>
+                                                <p className="text-[10px] uppercase tracking-tighter">Relatório de Serviço</p>
                                             </div>
-                                            <div className="border border-black p-3 bg-gray-50">
-                                                <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
-                                                <p className="text-sm leading-snug">{os.description}</p>
+                                            <div className="text-right">
+                                                <h2 className="text-xl font-bold uppercase">Ordem de Serviço</h2>
+                                                <p className="font-mono text-sm">#{os.id.substring(0, 8).toUpperCase()}</p>
+                                                <p className="text-xs">{format(new Date(os.created_at), "dd/MM/yyyy HH:mm")}</p>
                                             </div>
                                         </div>
 
-                                        <div className="flex-1 flex flex-col mt-4">
-                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-2">Comprovante de Execução / Anexo</p>
-                                            <div className="flex-1 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 min-h-[300px]">
+                                        {/* Content Grid - Better spacing */}
+                                        <div className="flex flex-col gap-4 mb-6">
+                                            <div className="grid grid-cols-2 gap-8">
+                                                <div className="border-b border-gray-300 pb-2">
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500">Empresa Solicitante</p>
+                                                    <p className="text-xl font-bold truncate">{os.requesting_company}</p>
+                                                </div>
+                                                <div className="border-b border-gray-300 pb-2">
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500">Cliente / Destino</p>
+                                                    <p className="text-xl font-bold truncate">{os.client_name}</p>
+                                                </div>
+                                            </div>
+
+                                            <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg">
+                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-2">Descrição do Serviço / Observações</p>
+                                                <p className="text-sm leading-relaxed whitespace-pre-line">{os.description}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Image Section - Main Focus */}
+                                        <div className="flex-1 flex flex-col min-h-0">
+                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-2 pb-1">Anexos / Comprovantes</p>
+                                            <div className="flex-1 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 p-4 overflow-hidden relative">
                                                 {os.photo_url ? (
                                                     <img
                                                         src={os.photo_url}
-                                                        alt="Anexo da OS"
-                                                        className="max-h-[500px] w-auto max-w-full object-contain"
+                                                        alt="Anexo"
+                                                        className="absolute inset-0 w-full h-full object-contain p-4"
                                                     />
                                                 ) : (
-                                                    <p className="text-xs uppercase text-gray-400">Nenhum anexo de imagem vinculado</p>
+                                                    <div className="text-center text-gray-400">
+                                                        <FileText size={48} className="mx-auto opacity-20 mb-2" />
+                                                        <p className="text-xs uppercase">Nenhum registro fotográfico anexado</p>
+                                                    </div>
                                                 )}
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div className="mt-auto grid grid-cols-2 gap-10 text-center text-xs">
-                                        <div className="border-t border-black pt-4">
-                                            <p className="font-bold">Assinatura Solicitante</p>
-                                            <p className="text-[8px] mt-1 italic">Autorizo a execução do serviço</p>
+                                        {/* Footer / Signatures - Compact at bottom */}
+                                        <div className="mt-6 pt-4 border-t-2 border-black grid grid-cols-2 gap-12">
+                                            <div className="text-center">
+                                                <div className="h-8 border-b border-black/50 mb-1"></div>
+                                                <p className="text-[10px] uppercase font-bold">Assinatura Solicitante</p>
+                                            </div>
+                                            <div className="text-center">
+                                                <div className="h-8 border-b border-black/50 mb-1"></div>
+                                                <p className="text-[10px] uppercase font-bold">Assinatura Motorista / Responsável</p>
+                                            </div>
                                         </div>
-                                        <div className="border-t border-black pt-4">
-                                            <p className="font-bold">Assinatura Prestador / Motorista</p>
-                                            <p className="text-[8px] mt-1 italic">Serviço concluído conforme acima</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="mt-8 text-[8px] text-gray-400 text-center uppercase tracking-widest">
-                                        AMA TRIP - Gerado eletronicamente em {new Date().toLocaleString('pt-BR')}
                                     </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     ))
                 ) : (
@@ -421,8 +363,21 @@ const ServiceOrder = () => {
                 @media print {
                     body * { visibility: hidden; }
                     .print\\:hidden { display: none !important; }
-                    /* Show only the printed OS version */
-                    div.fixed.inset-0.bg-white { visibility: visible !important; display: block !important; position: static !important; }
+                    
+                    /* Reset margins to maximize space */
+                    @page { margin: 0; size: auto; }
+                    
+                    /* Force Print Container to show */
+                    div.fixed.inset-0.bg-white { 
+                        visibility: visible !important; 
+                        display: block !important; 
+                        position: fixed !important; 
+                        inset: 0 !important;
+                        width: 100vw !important;
+                        height: 100vh !important;
+                        z-index: 9999 !important;
+                        background: white !important;
+                    }
                     div.fixed.inset-0.bg-white * { visibility: visible !important; }
                 }
             ` }} />

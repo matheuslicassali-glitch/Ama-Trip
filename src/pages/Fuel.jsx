@@ -21,6 +21,22 @@ const Fuel = () => {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [pendingAction, setPendingAction] = useState(null);
     const [previewImage, setPreviewImage] = useState(null);
+    const [printingId, setPrintingId] = useState(null);
+
+    const handlePrint = (id) => {
+        setPrintingId(id);
+        setTimeout(() => {
+            window.print();
+        }, 100);
+    };
+
+    React.useEffect(() => {
+        const handleAfterPrint = () => {
+            setPrintingId(null);
+        };
+        window.addEventListener('afterprint', handleAfterPrint);
+        return () => window.removeEventListener('afterprint', handleAfterPrint);
+    }, []);
 
     const handleReceiptChange = (e) => {
         const file = e.target.files[0];
@@ -335,7 +351,7 @@ const Fuel = () => {
 
                                         <div className="flex gap-2 print:hidden mt-4">
                                             <button
-                                                onClick={() => window.print()}
+                                                onClick={() => handlePrint(record.id)}
                                                 className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
                                                 title="Imprimir"
                                             >
@@ -360,69 +376,71 @@ const Fuel = () => {
                                 </div>
 
                                 {/* Print Version of the Card */}
-                                <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
-                                    <div className="border-2 border-black p-8 h-full flex flex-col">
-                                        {/* Header */}
-                                        <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-8">
-                                            <div>
-                                                <h1 className="text-3xl font-black italic">AMA TRIP</h1>
-                                                <p className="text-xs uppercase tracking-tighter">Controle de Abastecimento</p>
+                                {printingId === record.id && (
+                                    <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
+                                        <div className="border-2 border-black p-8 h-full flex flex-col">
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-8">
+                                                <div>
+                                                    <h1 className="text-3xl font-black italic">AMA TRIP</h1>
+                                                    <p className="text-xs uppercase tracking-tighter">Controle de Abastecimento</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <h2 className="text-2xl font-bold">COMPROVANTE</h2>
+                                                    <p className="font-mono text-sm">#{record.id.substring(0, 8).toUpperCase()}</p>
+                                                    <p className="text-xs mt-1">{format(new Date(record.date), "dd/MM/yyyy HH:mm")}</p>
+                                                </div>
                                             </div>
-                                            <div className="text-right">
-                                                <h2 className="text-2xl font-bold">COMPROVANTE</h2>
-                                                <p className="font-mono text-sm">#{record.id.substring(0, 8).toUpperCase()}</p>
-                                                <p className="text-xs mt-1">{format(new Date(record.date), "dd/MM/yyyy HH:mm")}</p>
-                                            </div>
-                                        </div>
 
-                                        {/* Main Info */}
-                                        <div className="grid grid-cols-2 gap-8 mb-8">
-                                            <div>
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Veículo</p>
-                                                <p className="text-xl font-bold">{car?.model}</p>
-                                                <p className="text-sm text-gray-600">{car?.plate}</p>
+                                            {/* Main Info */}
+                                            <div className="grid grid-cols-2 gap-8 mb-8">
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Veículo</p>
+                                                    <p className="text-xl font-bold">{car?.model}</p>
+                                                    <p className="text-sm text-gray-600">{car?.plate}</p>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Valor Total</p>
+                                                    <p className="text-2xl font-bold text-black border-2 border-black inline-block px-3 py-1">
+                                                        R$ {parseFloat(record.value).toFixed(2)}
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Valor Total</p>
-                                                <p className="text-2xl font-bold text-black border-2 border-black inline-block px-3 py-1">
-                                                    R$ {parseFloat(record.value).toFixed(2)}
-                                                </p>
-                                            </div>
-                                        </div>
 
-                                        <div className="flex gap-8 mb-8 bg-gray-50 p-4 border border-gray-200">
-                                            <div className="flex-1">
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Litros Abastecidos</p>
-                                                <p className="font-mono text-lg">{record.liters} L</p>
+                                            <div className="flex gap-8 mb-8 bg-gray-50 p-4 border border-gray-200">
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Litros Abastecidos</p>
+                                                    <p className="font-mono text-lg">{record.liters} L</p>
+                                                </div>
+                                                <div className="flex-1">
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Quilometragem (Odometer)</p>
+                                                    <p className="font-mono text-lg">{record.km} km</p>
+                                                </div>
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Quilometragem (Odometer)</p>
-                                                <p className="font-mono text-lg">{record.km} km</p>
-                                            </div>
-                                        </div>
 
-                                        {/* Receipt Photo */}
-                                        <div className="flex-1 flex flex-col">
-                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-4">Comprovante Fiscal / Recibo</p>
-                                            <div className="flex-1 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 p-4">
-                                                {record.receipt_photo ? (
-                                                    <img
-                                                        src={record.receipt_photo}
-                                                        alt="Recibo"
-                                                        className="max-h-[500px] w-auto max-w-full object-contain shadow-lg"
-                                                    />
-                                                ) : (
-                                                    <p className="text-sm uppercase text-gray-400">Nenhum comprovante anexado</p>
-                                                )}
+                                            {/* Receipt Photo */}
+                                            <div className="flex-1 flex flex-col">
+                                                <p className="text-[10px] uppercase font-bold border-b border-black mb-4">Comprovante Fiscal / Recibo</p>
+                                                <div className="flex-1 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 p-4">
+                                                    {record.receipt_photo ? (
+                                                        <img
+                                                            src={record.receipt_photo}
+                                                            alt="Recibo"
+                                                            className="max-h-[500px] w-auto max-w-full object-contain shadow-lg"
+                                                        />
+                                                    ) : (
+                                                        <p className="text-sm uppercase text-gray-400">Nenhum comprovante anexado</p>
+                                                    )}
+                                                </div>
                                             </div>
-                                        </div>
 
-                                        {/* Footer */}
-                                        <div className="mt-8 text-[8px] text-gray-400 text-center uppercase tracking-widest">
-                                            Registro Digital - Ama Trip
+                                            {/* Footer */}
+                                            <div className="mt-8 text-[8px] text-gray-400 text-center uppercase tracking-widest">
+                                                Registro Digital - Ama Trip
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         );
                     })
