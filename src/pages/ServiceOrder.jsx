@@ -38,7 +38,98 @@ const ServiceOrder = () => {
         return () => window.removeEventListener('afterprint', handleAfterPrint);
     }, []);
 
-    // ... (existing code for form handling)
+    const [pendingAction, setPendingAction] = useState(null);
+    const [formData, setFormData] = useState({
+        requesting_company: '',
+        client_name: '',
+        description: '',
+        photo_url: '',
+    });
+
+    const handleFileChange = (e) => {
+        const selectedFile = e.target.files[0];
+        if (selectedFile) {
+            setFile(selectedFile);
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setFormData(prev => ({ ...prev, photo_url: reader.result }));
+            };
+            reader.readAsDataURL(selectedFile);
+        }
+    };
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        let uploadedUrl = formData.photo_url;
+
+        if (file) {
+            try {
+                uploadedUrl = await uploadImage(file, 'service-orders');
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert('Erro ao fazer upload da imagem: ' + error.message);
+                return;
+            }
+        }
+
+        const dataToSave = {
+            requesting_company: formData.requesting_company,
+            client_name: formData.client_name,
+            description: formData.description,
+            photo_url: uploadedUrl
+        };
+
+        try {
+            if (editingId) {
+                await updateServiceOrder(editingId, dataToSave);
+                setEditingId(null);
+            } else {
+                await addServiceOrder(dataToSave);
+            }
+
+            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
+            setFile(null);
+            setIsCreating(false);
+        } catch (error) {
+            console.error('Save error:', error);
+            alert('Erro ao salvar: ' + error.message);
+        }
+    };
+
+    const handleEdit = (os) => {
+        setPendingAction({ type: 'edit', data: os });
+        setShowPasswordModal(true);
+    };
+
+    const handleDelete = (id) => {
+        setPendingAction({ type: 'delete', data: id });
+        setShowPasswordModal(true);
+    };
+
+    const executeAction = async () => {
+        if (!pendingAction) return;
+
+        if (pendingAction.type === 'edit') {
+            const os = pendingAction.data;
+            setFormData({
+                requesting_company: os.requesting_company,
+                client_name: os.client_name,
+                description: os.description,
+                photo_url: os.photo_url || ''
+            });
+            setEditingId(os.id);
+            setIsCreating(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (pendingAction.type === 'delete') {
+            try {
+                await deleteServiceOrder(pendingAction.data);
+            } catch (error) {
+                console.error('Delete error:', error);
+                alert('Erro ao excluir: ' + error.message);
+            }
+        }
+        setPendingAction(null);
+    };
 
     if (loading) {
         return (
