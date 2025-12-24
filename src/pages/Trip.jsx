@@ -70,8 +70,61 @@ const Trip = () => {
         }
     };
 
-    const handleStart = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // If editing, handle update
+        if (editingId) {
+            let startOdometerUrl = formData.start_odometer_photo; // existing or new
+            let endOdometerUrl = formData.end_odometer_photo; // existing or new
+
+            if (startOdometerFile) {
+                try {
+                    startOdometerUrl = await uploadImage(startOdometerFile, 'odometer-photos');
+                } catch (error) {
+                    alert('Erro ao fazer upload da foto inicial: ' + error.message);
+                    return;
+                }
+            }
+
+            if (endOdometerFile) {
+                try {
+                    endOdometerUrl = await uploadImage(endOdometerFile, 'odometer-photos');
+                } catch (error) {
+                    alert('Erro ao fazer upload da foto final: ' + error.message);
+                    return;
+                }
+            }
+
+            const tripData = {
+                car_id: formData.car_id,
+                driver_id: formData.driver_id,
+                start_km: parseFloat(formData.start_km),
+                end_km: parseFloat(formData.end_km),
+                origin: formData.location, // Assuming this maps to origin
+                destination: formData.destination,
+                observations: formData.observations,
+                start_odometer_photo: startOdometerUrl,
+                end_odometer_photo: endOdometerUrl
+            };
+
+            try {
+                await updateTrip(editingId, tripData);
+                setEditingId(null);
+                setIsCreating(false);
+                setFormData({ car_id: '', driver_id: '', start_km: '', end_km: '', location: '', destination: '', observations: '' });
+                setStartOdometerFile(null);
+                setEndOdometerFile(null);
+                setStartOdometerPreview('');
+                setEndOdometerPreview('');
+                alert('Viagem atualizada com sucesso!');
+            } catch (error) {
+                alert('Erro ao atualizar viagem: ' + error.message);
+            }
+            return;
+        }
+
+        // Existing Start Trip logic
         const car = cars.find(c => c.id === formData.car_id);
         const driver = drivers.find(d => d.id === formData.driver_id);
 
@@ -215,8 +268,23 @@ const Trip = () => {
         if (!pendingAction) return;
 
         if (pendingAction.type === 'edit') {
-            // Implementar edição de viagem se necessário
-            alert('Edição de viagens em desenvolvimento');
+            const trip = pendingAction.data;
+            setFormData({
+                car_id: trip.car_id,
+                driver_id: trip.driver_id,
+                start_km: trip.start_km,
+                end_km: trip.end_km,
+                location: trip.origin,
+                destination: trip.destination,
+                observations: trip.observations,
+                start_odometer_photo: trip.start_odometer_photo,
+                end_odometer_photo: trip.end_odometer_photo
+            });
+            setStartOdometerPreview(trip.start_odometer_photo || '');
+            setEndOdometerPreview(trip.end_odometer_photo || '');
+            setEditingId(trip.id);
+            setIsCreating(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (pendingAction.type === 'delete') {
             try {
                 await deleteTrip(pendingAction.data);
@@ -297,7 +365,7 @@ const Trip = () => {
                                             <div className="bg-white/5 p-4 rounded-xl border border-white/5">
                                                 <div className="grid grid-cols-3 gap-4 mb-3">
                                                     <div>
-                                                        <p className="text-xs text-muted-foreground uppercase font-bold mb-1">KM Inicial</p>
+
                                                         <p className="text-sm font-mono">{trip.start_km} km</p>
                                                     </div>
                                                     <div>
@@ -634,18 +702,22 @@ const Trip = () => {
         <div className="max-w-2xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500">
             <header className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold">Iniciar Nova Viagem</h2>
-                    <p className="text-muted-foreground">Preencha os detalhes para começar o acompanhamento.</p>
+                    <h2 className="text-3xl font-bold">{editingId ? 'Editar Viagem' : 'Iniciar Nova Viagem'}</h2>
+                    <p className="text-muted-foreground">{editingId ? 'Atualize os dados da viagem.' : 'Preencha os detalhes para começar o acompanhamento.'}</p>
                 </div>
                 <button
-                    onClick={() => setIsCreating(false)}
+                    onClick={() => {
+                        setIsCreating(false);
+                        setEditingId(null);
+                        setFormData({ car_id: '', driver_id: '', start_km: '', end_km: '', location: '', destination: '', observations: '' });
+                    }}
                     className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-all"
                 >
                     Cancelar
                 </button>
             </header>
 
-            <form onSubmit={handleStart} className="glass-morphism p-8 rounded-2xl space-y-6">
+            <form onSubmit={handleSubmit} className="glass-morphism p-8 rounded-2xl space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-2">
                         <label className="text-sm font-medium text-muted-foreground">Selecionar Veículo</label>
@@ -728,6 +800,92 @@ const Trip = () => {
                     </label>
                 </div>
 
+                {editingId && (
+                    <>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Local de Origem</label>
+                            <input
+                                type="text"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                                value={formData.location}
+                                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                            />
+                        </div>
+                        <div className="grid md:grid-cols-2 gap-6">
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Quilometragem Final</label>
+                                <input
+                                    type="number"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                                    value={formData.end_km}
+                                    onChange={(e) => setFormData({ ...formData, end_km: e.target.value })}
+                                />
+                            </div>
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium text-muted-foreground">Local de Destino</label>
+                                <input
+                                    type="text"
+                                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all text-white"
+                                    value={formData.destination}
+                                    onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Foto do Odômetro (Final)</label>
+                            <label className={`block border-2 border-dashed ${endOdometerPreview ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group`}>
+                                {endOdometerPreview ? (
+                                    <div className="text-center">
+                                        <img src={endOdometerPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
+                                        <div className="flex gap-2 justify-center mt-3">
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setPreviewImage(endOdometerPreview);
+                                                }}
+                                                className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2"
+                                            >
+                                                <Eye size={16} />
+                                                Ver Preview
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    setEndOdometerPreview('');
+                                                    setEndOdometerFile(null);
+                                                }}
+                                                className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                                            >
+                                                <X size={16} />
+                                                Remover
+                                            </button>
+                                        </div>
+                                        <p className="text-xs text-primary font-bold mt-2">Clique na área para alterar</p>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
+                                        <p className="text-sm text-muted-foreground">Toque para carregar ou tirar foto</p>
+                                    </>
+                                )}
+                                <input type="file" accept="image/*" className="hidden" onChange={handleEndOdometerChange} />
+                            </label>
+                        </div>
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium text-muted-foreground">Observações</label>
+                            <textarea
+                                rows="3"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary outline-none transition-all resize-none text-white"
+                                value={formData.observations}
+                                onChange={(e) => setFormData({ ...formData, observations: e.target.value })}
+                            />
+                        </div>
+                    </>
+                )}
+
                 <button
                     type="submit"
                     disabled={isFetchingLocation}
@@ -741,7 +899,7 @@ const Trip = () => {
                     ) : (
                         <>
                             <Navigation size={20} />
-                            <span>INICIAR MISSÃO</span>
+                            <span>{editingId ? 'SALVAR ALTERAÇÕES' : 'INICIAR MISSÃO'}</span>
                         </>
                     )}
                 </button>
