@@ -7,7 +7,7 @@ import AdminPasswordModal from '../components/AdminPasswordModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const ServiceOrder = () => {
-    const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user } = useAppContext();
+    const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user, uploadImage } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [file, setFile] = useState(null);
@@ -45,21 +45,14 @@ const ServiceOrder = () => {
 
             // If a new file is active, upload it to Supabase
             if (file) {
-                const fileExt = file.name.split('.').pop();
-                const fileName = `${Date.now()}.${fileExt}`;
-                const filePath = `${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('service-orders')
-                    .upload(filePath, file);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('service-orders')
-                    .getPublicUrl(filePath);
-
-                finalPhotoUrl = data.publicUrl;
+                console.log("Uploading file...", file.name);
+                try {
+                    finalPhotoUrl = await uploadImage(file, 'service-orders');
+                    console.log("Upload successful:", finalPhotoUrl);
+                } catch (uploadErr) {
+                    console.error("Upload failed:", uploadErr);
+                    throw new Error(`Erro no upload da imagem. Verifique se o bucket 'service-orders' existe e é público. Detalhes: ${uploadErr.message}`);
+                }
             }
 
             if (editingId) {

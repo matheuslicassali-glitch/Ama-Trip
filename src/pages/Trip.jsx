@@ -7,7 +7,7 @@ import AdminPasswordModal from '../components/AdminPasswordModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const Trip = () => {
-    const { trips, activeTrip, startTrip, endTrip, updateTrip, deleteTrip, cars, drivers, loading } = useAppContext();
+    const { trips, activeTrip, startTrip, endTrip, updateTrip, deleteTrip, cars, drivers, loading, uploadImage } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
@@ -99,24 +99,15 @@ const Trip = () => {
         let startOdometerUrl = '';
 
         // Upload foto do odômetro inicial se existir
+        // Upload foto do odômetro inicial se existir
         if (startOdometerFile) {
             try {
-                const fileExt = startOdometerFile.name.split('.').pop();
-                const fileName = `trip-start-${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('odometer-photos')
-                    .upload(fileName, startOdometerFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('odometer-photos')
-                    .getPublicUrl(fileName);
-
-                startOdometerUrl = data.publicUrl;
+                startOdometerUrl = await uploadImage(startOdometerFile, 'odometer-photos');
             } catch (error) {
                 console.error('Erro ao fazer upload da foto:', error);
-                alert('Erro ao fazer upload da foto do odômetro');
+                alert(`Erro ao fazer upload da foto do odômetro: ${error.message}. Verifique se o bucket 'odometer-photos' existe.`);
+                setIsFetchingLocation(false); // Stop loading on error
+                return; // Stop execution if upload fails
             }
         }
 
@@ -170,24 +161,15 @@ const Trip = () => {
         let endOdometerUrl = '';
 
         // Upload foto do odômetro final se existir
+        // Upload foto do odômetro final se existir
         if (endOdometerFile) {
             try {
-                const fileExt = endOdometerFile.name.split('.').pop();
-                const fileName = `trip-end-${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('odometer-photos')
-                    .upload(fileName, endOdometerFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('odometer-photos')
-                    .getPublicUrl(fileName);
-
-                endOdometerUrl = data.publicUrl;
+                endOdometerUrl = await uploadImage(endOdometerFile, 'odometer-photos');
             } catch (error) {
                 console.error('Erro ao fazer upload da foto:', error);
-                alert('Erro ao fazer upload da foto do odômetro');
+                alert(`Erro ao fazer upload da foto do odômetro: ${error.message}. Verifique se o bucket 'odometer-photos' existe.`);
+                setIsEndingTrip(false); // Stop loading on error
+                return; // Stop execution if upload fails
             }
         }
 

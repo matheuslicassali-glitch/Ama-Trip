@@ -211,6 +211,33 @@ export const AppProvider = ({ children }) => {
         await fetchTrips();
     };
 
+    const uploadImage = async (file, bucket) => {
+        if (!file) return null;
+
+        try {
+            const fileExt = file.name.split('.').pop();
+            const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+
+            const { error: uploadError, data } = await supabase.storage
+                .from(bucket)
+                .upload(fileName, file);
+
+            if (uploadError) {
+                console.error(`Upload error details for bucket ${bucket}:`, uploadError);
+                throw new Error(`Falha no upload para ${bucket}: ${uploadError.message}`);
+            }
+
+            const { data: urlData } = supabase.storage
+                .from(bucket)
+                .getPublicUrl(fileName);
+
+            return urlData.publicUrl;
+        } catch (error) {
+            console.error('Upload helper error:', error);
+            throw error;
+        }
+    };
+
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
         return (
             <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -234,7 +261,8 @@ export const AppProvider = ({ children }) => {
             addCar, addDriver, startTrip, endTrip, addFuelRecord, addServiceOrder, login, logout,
             updateFuelRecord, deleteFuelRecord,
             updateServiceOrder, deleteServiceOrder,
-            updateTrip, deleteTrip,
+            updateServiceOrder, deleteServiceOrder,
+            updateTrip, deleteTrip, uploadImage,
             refreshData: fetchInitialData
         }}>
             {children}

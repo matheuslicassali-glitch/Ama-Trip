@@ -7,7 +7,7 @@ import AdminPasswordModal from '../components/AdminPasswordModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const Fuel = () => {
-    const { cars, fuelRecords, addFuelRecord, updateFuelRecord, deleteFuelRecord, loading } = useAppContext();
+    const { cars, fuelRecords, addFuelRecord, updateFuelRecord, deleteFuelRecord, loading, uploadImage } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
     const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
@@ -42,24 +42,13 @@ const Fuel = () => {
         let receiptUrl = receiptPreview;
 
         // Upload foto do comprovante se existir um novo arquivo
+        // Upload foto do comprovante se existir um novo arquivo
         if (receiptFile) {
             try {
-                const fileExt = receiptFile.name.split('.').pop();
-                const fileName = `fuel-receipt-${Date.now()}.${fileExt}`;
-                const { error: uploadError } = await supabase.storage
-                    .from('fuel-receipts')
-                    .upload(fileName, receiptFile);
-
-                if (uploadError) throw uploadError;
-
-                const { data } = supabase.storage
-                    .from('fuel-receipts')
-                    .getPublicUrl(fileName);
-
-                receiptUrl = data.publicUrl;
+                receiptUrl = await uploadImage(receiptFile, 'fuel-receipts');
             } catch (error) {
                 console.error('Erro ao fazer upload da foto:', error);
-                alert('Erro ao fazer upload da foto do comprovante');
+                alert(`Erro ao fazer upload da foto do comprovante: ${error.message}. Verifique se o bucket 'fuel-receipts' existe.`);
                 return;
             }
         }
