@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { Camera, MapPin, Navigation, CheckCircle2 } from 'lucide-react';
+import { Camera, MapPin, Navigation, CheckCircle2, Eye, X } from 'lucide-react';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const Trip = () => {
     const { activeTrip, startTrip, endTrip, cars, drivers, loading } = useAppContext();
@@ -19,6 +20,7 @@ const Trip = () => {
     const [startOdometerPreview, setStartOdometerPreview] = useState('');
     const [endOdometerFile, setEndOdometerFile] = useState(null);
     const [endOdometerPreview, setEndOdometerPreview] = useState('');
+    const [previewImage, setPreviewImage] = useState(null);
 
     const handleStartOdometerChange = (e) => {
         const file = e.target.files[0];
@@ -249,7 +251,32 @@ const Trip = () => {
                             {startOdometerPreview ? (
                                 <div className="text-center">
                                     <img src={startOdometerPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
-                                    <p className="text-xs text-primary font-bold">Foto selecionada (Clique para alterar)</p>
+                                    <div className="flex gap-2 justify-center mt-3">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPreviewImage(startOdometerPreview);
+                                            }}
+                                            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2"
+                                        >
+                                            <Eye size={16} />
+                                            Ver Preview
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setStartOdometerPreview('');
+                                                setStartOdometerFile(null);
+                                            }}
+                                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                                        >
+                                            <X size={16} />
+                                            Remover
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-primary font-bold mt-2">Clique na área para alterar</p>
                                 </div>
                             ) : (
                                 <>
@@ -350,7 +377,32 @@ const Trip = () => {
                         {endOdometerPreview ? (
                             <div className="text-center">
                                 <img src={endOdometerPreview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
-                                <p className="text-xs text-primary font-bold">Foto selecionada (Clique para alterar)</p>
+                                <div className="flex gap-2 justify-center mt-3">
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setPreviewImage(endOdometerPreview);
+                                        }}
+                                        className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2"
+                                    >
+                                        <Eye size={16} />
+                                        Ver Preview
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setEndOdometerPreview('');
+                                            setEndOdometerFile(null);
+                                        }}
+                                        className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                                    >
+                                        <X size={16} />
+                                        Remover
+                                    </button>
+                                </div>
+                                <p className="text-xs text-primary font-bold mt-2">Clique na área para alterar</p>
                             </div>
                         ) : (
                             <>
@@ -380,6 +432,13 @@ const Trip = () => {
                     )}
                 </button>
             </form>
+
+            <ImagePreviewModal
+                isOpen={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                imageUrl={previewImage}
+                title="Preview do Odômetro"
+            />
         </div>
     );
 };

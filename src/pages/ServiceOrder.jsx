@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText } from 'lucide-react';
+import { ClipboardList, Building2, UserCircle, Calendar, CheckCircle, Printer, FileText, Edit2, Trash2, Eye, X } from 'lucide-react';
 import { format } from 'date-fns';
+import AdminPasswordModal from '../components/AdminPasswordModal';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const ServiceOrder = () => {
-    const { serviceOrders, addServiceOrder, loading, user } = useAppContext();
+    const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
+    const [editingId, setEditingId] = useState(null);
     const [file, setFile] = useState(null);
+    const [previewImage, setPreviewImage] = useState(null);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [pendingAction, setPendingAction] = useState(null);
     const [formData, setFormData] = useState({
         requesting_company: '',
         client_name: '',
         description: '',
-        photo_url: '', // Store the URL (either base64/blob for now or remote url)
+        photo_url: '',
     });
 
     const handleFileChange = async (e) => {
@@ -23,7 +29,10 @@ const ServiceOrder = () => {
             // Create local preview
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData({ ...formData, photo_url: reader.result });
+                const imageUrl = reader.result;
+                setFormData({ ...formData, photo_url: imageUrl });
+                // Show preview modal
+                setPreviewImage(imageUrl);
             };
             reader.readAsDataURL(selectedFile);
         }
@@ -53,13 +62,53 @@ const ServiceOrder = () => {
                 finalPhotoUrl = data.publicUrl;
             }
 
-            await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
+            if (editingId) {
+                await updateServiceOrder(editingId, { ...formData, photo_url: finalPhotoUrl });
+                setEditingId(null);
+            } else {
+                await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
+            }
+
             setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
             setFile(null);
             setIsCreating(false);
         } catch (error) {
-            alert('Erro ao criar Ordem de Serviço: ' + error.message);
+            alert('Erro ao salvar Ordem de Serviço: ' + error.message);
         }
+    };
+
+    const handleEdit = (order) => {
+        setPendingAction({ type: 'edit', data: order });
+        setShowPasswordModal(true);
+    };
+
+    const handleDelete = (id) => {
+        setPendingAction({ type: 'delete', data: id });
+        setShowPasswordModal(true);
+    };
+
+    const executeAction = async () => {
+        if (!pendingAction) return;
+
+        if (pendingAction.type === 'edit') {
+            setFormData({
+                requesting_company: pendingAction.data.requesting_company,
+                client_name: pendingAction.data.client_name,
+                description: pendingAction.data.description,
+                photo_url: pendingAction.data.photo_url || '',
+            });
+            setEditingId(pendingAction.data.id);
+            setIsCreating(true);
+        } else if (pendingAction.type === 'delete') {
+            try {
+                await deleteServiceOrder(pendingAction.data);
+                alert('Ordem de Serviço excluída com sucesso!');
+            } catch (error) {
+                alert('Erro ao excluir: ' + error.message);
+            }
+        }
+
+        setPendingAction(null);
     };
 
     if (loading) {
@@ -81,7 +130,16 @@ const ServiceOrder = () => {
                     <p className="text-muted-foreground">Gestão de solicitações e ordens de trabalho.</p>
                 </div>
                 <button
-                    onClick={() => setIsCreating(!isCreating)}
+                    onClick={() => {
+                        if (isCreating) {
+                            setIsCreating(false);
+                            setEditingId(null);
+                            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
+                            setFile(null);
+                        } else {
+                            setIsCreating(true);
+                        }
+                    }}
                     className="accent-gradient text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all"
                 >
                     {isCreating ? 'CANCELAR' : 'NOVA ORDEM DE SERVIÇO'}
@@ -90,7 +148,9 @@ const ServiceOrder = () => {
 
             {isCreating && (
                 <form onSubmit={handleSubmit} className="glass-morphism p-8 rounded-2xl space-y-6 animate-in slide-in-from-top-4 print:hidden max-w-2xl mx-auto">
-                    <h3 className="text-xl font-bold mb-4">Dados da Solicitação</h3>
+                    <h3 className="text-xl font-bold mb-4">
+                        {editingId ? 'Editar Ordem de Serviço' : 'Dados da Solicitação'}
+                    </h3>
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
@@ -142,7 +202,32 @@ const ServiceOrder = () => {
                             {formData.photo_url ? (
                                 <div className="text-center">
                                     <img src={formData.photo_url} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
-                                    <p className="text-xs text-primary font-bold">Imagem selecionada (Clique para alterar)</p>
+                                    <div className="flex gap-2 justify-center mt-3">
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setPreviewImage(formData.photo_url);
+                                            }}
+                                            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2"
+                                        >
+                                            <Eye size={16} />
+                                            Ver Preview
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                setFormData({ ...formData, photo_url: '' });
+                                                setFile(null);
+                                            }}
+                                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
+                                        >
+                                            <X size={16} />
+                                            Remover
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-primary font-bold mt-2">Clique na área para alterar</p>
                                 </div>
                             ) : (
                                 <>
@@ -159,7 +244,7 @@ const ServiceOrder = () => {
                         className="w-full bg-primary py-4 rounded-xl font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center space-x-2"
                     >
                         <CheckCircle size={20} />
-                        <span>GERAR ORDEM DE SERVIÇO</span>
+                        <span>{editingId ? 'ATUALIZAR ORDEM DE SERVIÇO' : 'GERAR ORDEM DE SERVIÇO'}</span>
                     </button>
                 </form>
             )}
@@ -202,13 +287,46 @@ const ServiceOrder = () => {
                                         <p className="text-sm leading-relaxed text-foreground/90">{os.description}</p>
                                     </div>
 
-                                    <button
-                                        onClick={() => window.print()}
-                                        className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all print:hidden mt-4"
-                                        title="Imprimir OS"
-                                    >
-                                        <Printer size={20} />
-                                    </button>
+                                    {os.photo_url && (
+                                        <div className="mt-4">
+                                            <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Comprovante Anexado</p>
+                                            <div className="relative group/img">
+                                                <img
+                                                    src={os.photo_url}
+                                                    alt="Comprovante"
+                                                    className="max-h-48 rounded-xl border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
+                                                    onClick={() => setPreviewImage(os.photo_url)}
+                                                />
+                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
+                                                    <Eye className="text-white" size={32} />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    <div className="flex gap-2 print:hidden mt-4">
+                                        <button
+                                            onClick={() => window.print()}
+                                            className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
+                                            title="Imprimir OS"
+                                        >
+                                            <Printer size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleEdit(os)}
+                                            className="p-3 bg-white/5 rounded-xl hover:bg-blue-500/20 text-muted-foreground hover:text-blue-400 transition-all"
+                                            title="Editar OS"
+                                        >
+                                            <Edit2 size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDelete(os.id)}
+                                            className="p-3 bg-white/5 rounded-xl hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-all"
+                                            title="Excluir OS"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -237,7 +355,6 @@ const ServiceOrder = () => {
                                                 <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
                                                 <p className="text-lg font-bold">{os.client_name}</p>
                                             </div>
-                                            {/* Status Block Removed for Print View */}
                                         </div>
                                         <div className="border-2 border-black p-4 bg-gray-50 flex flex-col justify-between">
                                             <div>
@@ -287,6 +404,23 @@ const ServiceOrder = () => {
                     </div>
                 )}
             </div>
+
+            <AdminPasswordModal
+                isOpen={showPasswordModal}
+                onClose={() => {
+                    setShowPasswordModal(false);
+                    setPendingAction(null);
+                }}
+                onSuccess={executeAction}
+                title="Autorização Necessária"
+            />
+
+            <ImagePreviewModal
+                isOpen={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                imageUrl={previewImage}
+                title="Preview do Comprovante"
+            />
 
             <style dangerouslySetInnerHTML={{
                 __html: `

@@ -12,15 +12,18 @@ import {
     Download,
     ChevronRight,
     Filter,
-    ClipboardList
+    ClipboardList,
+    Eye
 } from 'lucide-react';
 import { format, startOfDay, endOfDay, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const Reports = () => {
     const { trips, fuelRecords, serviceOrders, cars, drivers, loading } = useAppContext();
     const [period, setPeriod] = useState('daily'); // daily, weekly, monthly
     const [reportType, setReportType] = useState('all'); // all, trips, fuel, serviceOrders
+    const [previewImage, setPreviewImage] = useState(null);
     const printRef = useRef();
 
     if (loading) {
@@ -226,12 +229,15 @@ const Reports = () => {
                                             {fuel.receipt_photo ? (
                                                 <div className="mt-4">
                                                     <p className="text-xs text-muted-foreground uppercase font-bold mb-2 print:text-gray-600">Comprovante</p>
-                                                    <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300">
+                                                    <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300 relative group/img cursor-pointer" onClick={() => setPreviewImage(fuel.receipt_photo)}>
                                                         <img
                                                             src={fuel.receipt_photo}
                                                             alt="Comprovante de Abastecimento"
                                                             className="w-full h-auto object-contain max-h-64"
                                                         />
+                                                        <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center print:hidden">
+                                                            <Eye className="text-white" size={32} />
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ) : (
@@ -285,12 +291,15 @@ const Reports = () => {
                                         {so.photo_url && (
                                             <div className="mt-4">
                                                 <p className="text-xs text-muted-foreground uppercase font-bold mb-2 print:text-gray-600">Foto Anexada</p>
-                                                <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300">
+                                                <div className="bg-white/5 rounded-xl overflow-hidden border border-white/10 print:border-gray-300 relative group/img cursor-pointer" onClick={() => setPreviewImage(so.photo_url)}>
                                                     <img
                                                         src={so.photo_url}
                                                         alt="Ordem de Serviço"
                                                         className="w-full h-auto object-contain max-h-96"
                                                     />
+                                                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center print:hidden">
+                                                        <Eye className="text-white" size={32} />
+                                                    </div>
                                                 </div>
                                             </div>
                                         )}
@@ -330,6 +339,13 @@ const Reports = () => {
                     .max-w-5xl { max-width: 100% !important; }
                 }
             ` }} />
+
+            <ImagePreviewModal
+                isOpen={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                imageUrl={previewImage}
+                title="Preview do Comprovante"
+            />
         </div>
     );
 };

@@ -166,6 +166,18 @@ export const AppProvider = ({ children }) => {
         await fetchFuelRecords();
     };
 
+    const updateFuelRecord = async (id, fuel) => {
+        const { error } = await supabase.from('fuel_records').update(fuel).eq('id', id);
+        if (error) throw error;
+        await fetchFuelRecords();
+    };
+
+    const deleteFuelRecord = async (id) => {
+        const { error } = await supabase.from('fuel_records').delete().eq('id', id);
+        if (error) throw error;
+        await fetchFuelRecords();
+    };
+
     const addServiceOrder = async (order) => {
         const { error } = await supabase.from('service_orders').insert([{
             ...order,
@@ -173,6 +185,30 @@ export const AppProvider = ({ children }) => {
         }]);
         if (error) throw error;
         await fetchServiceOrders();
+    };
+
+    const updateServiceOrder = async (id, order) => {
+        const { error } = await supabase.from('service_orders').update(order).eq('id', id);
+        if (error) throw error;
+        await fetchServiceOrders();
+    };
+
+    const deleteServiceOrder = async (id) => {
+        const { error } = await supabase.from('service_orders').delete().eq('id', id);
+        if (error) throw error;
+        await fetchServiceOrders();
+    };
+
+    const updateTrip = async (id, tripData) => {
+        const { error } = await supabase.from('trips').update(tripData).eq('id', id);
+        if (error) throw error;
+        await fetchTrips();
+    };
+
+    const deleteTrip = async (id) => {
+        const { error } = await supabase.from('trips').delete().eq('id', id);
+        if (error) throw error;
+        await fetchTrips();
     };
 
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -196,6 +232,9 @@ export const AppProvider = ({ children }) => {
         <AppContext.Provider value={{
             cars, drivers, trips, activeTrip, user, fuelRecords, serviceOrders, loading,
             addCar, addDriver, startTrip, endTrip, addFuelRecord, addServiceOrder, login, logout,
+            updateFuelRecord, deleteFuelRecord,
+            updateServiceOrder, deleteServiceOrder,
+            updateTrip, deleteTrip,
             refreshData: fetchInitialData
         }}>
             {children}
