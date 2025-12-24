@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { Fuel as FuelIcon, Receipt, CheckCircle, Eye, X, Edit2, Trash2, Calendar, Car } from 'lucide-react';
+import { Fuel as FuelIcon, Receipt, CheckCircle, Eye, X, Edit2, Trash2, Calendar, Car, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminPasswordModal from '../components/AdminPasswordModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
@@ -335,6 +335,13 @@ const Fuel = () => {
 
                                         <div className="flex gap-2 print:hidden mt-4">
                                             <button
+                                                onClick={() => window.print()}
+                                                className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
+                                                title="Imprimir"
+                                            >
+                                                <Printer size={20} />
+                                            </button>
+                                            <button
                                                 onClick={() => handleEdit(record)}
                                                 className="p-3 bg-white/5 rounded-xl hover:bg-blue-500/20 text-muted-foreground hover:text-blue-400 transition-all"
                                                 title="Editar"
@@ -348,6 +355,71 @@ const Fuel = () => {
                                             >
                                                 <Trash2 size={20} />
                                             </button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Print Version of the Card */}
+                                <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
+                                    <div className="border-2 border-black p-8 h-full flex flex-col">
+                                        {/* Header */}
+                                        <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-8">
+                                            <div>
+                                                <h1 className="text-3xl font-black italic">AMA TRIP</h1>
+                                                <p className="text-xs uppercase tracking-tighter">Controle de Abastecimento</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <h2 className="text-2xl font-bold">COMPROVANTE</h2>
+                                                <p className="font-mono text-sm">#{record.id.substring(0, 8).toUpperCase()}</p>
+                                                <p className="text-xs mt-1">{format(new Date(record.date), "dd/MM/yyyy HH:mm")}</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Main Info */}
+                                        <div className="grid grid-cols-2 gap-8 mb-8">
+                                            <div>
+                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Veículo</p>
+                                                <p className="text-xl font-bold">{car?.model}</p>
+                                                <p className="text-sm text-gray-600">{car?.plate}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Valor Total</p>
+                                                <p className="text-2xl font-bold text-black border-2 border-black inline-block px-3 py-1">
+                                                    R$ {parseFloat(record.value).toFixed(2)}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-8 mb-8 bg-gray-50 p-4 border border-gray-200">
+                                            <div className="flex-1">
+                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Litros Abastecidos</p>
+                                                <p className="font-mono text-lg">{record.liters} L</p>
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Quilometragem (Odometer)</p>
+                                                <p className="font-mono text-lg">{record.km} km</p>
+                                            </div>
+                                        </div>
+
+                                        {/* Receipt Photo */}
+                                        <div className="flex-1 flex flex-col">
+                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-4">Comprovante Fiscal / Recibo</p>
+                                            <div className="flex-1 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 p-4">
+                                                {record.receipt_photo ? (
+                                                    <img
+                                                        src={record.receipt_photo}
+                                                        alt="Recibo"
+                                                        className="max-h-[500px] w-auto max-w-full object-contain shadow-lg"
+                                                    />
+                                                ) : (
+                                                    <p className="text-sm uppercase text-gray-400">Nenhum comprovante anexado</p>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="mt-8 text-[8px] text-gray-400 text-center uppercase tracking-widest">
+                                            Registro Digital - Ama Trip
                                         </div>
                                     </div>
                                 </div>
@@ -379,6 +451,17 @@ const Fuel = () => {
                 imageUrl={previewImage}
                 title="Preview do Comprovante"
             />
+
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media print {
+                    body * { visibility: hidden; }
+                    .print\\:hidden { display: none !important; }
+                    /* Show only the printed Fuel version */
+                    div.fixed.inset-0.bg-white { visibility: visible !important; display: block !important; position: static !important; }
+                    div.fixed.inset-0.bg-white * { visibility: visible !important; }
+                }
+            ` }} />
         </div>
     );
 };

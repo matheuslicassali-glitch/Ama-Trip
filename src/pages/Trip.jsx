@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { Camera, MapPin, Navigation, CheckCircle2, Eye, X, Edit2, Trash2, Calendar, Car, User } from 'lucide-react';
+import { Camera, MapPin, Navigation, CheckCircle2, Eye, X, Edit2, Trash2, Calendar, Car, User, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import AdminPasswordModal from '../components/AdminPasswordModal';
 import ImagePreviewModal from '../components/ImagePreviewModal';
@@ -347,12 +347,101 @@ const Trip = () => {
 
                                             <div className="flex gap-2 print:hidden mt-4">
                                                 <button
+                                                    onClick={() => window.print()}
+                                                    className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
+                                                    title="Imprimir"
+                                                >
+                                                    <Printer size={20} />
+                                                </button>
+                                                <button
                                                     onClick={() => handleDelete(trip.id)}
                                                     className="p-3 bg-white/5 rounded-xl hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-all"
                                                     title="Excluir"
                                                 >
                                                     <Trash2 size={20} />
                                                 </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Print Version of the Card */}
+                                    <div className="hidden print:block fixed inset-0 bg-white text-black p-8 z-[1000] overflow-hidden">
+                                        <div className="border-2 border-black p-6 h-full flex flex-col">
+                                            {/* Header */}
+                                            <div className="flex justify-between items-start border-b-2 border-black pb-4 mb-4">
+                                                <div>
+                                                    <h1 className="text-2xl font-black italic">AMA TRIP</h1>
+                                                    <p className="text-[10px] uppercase tracking-tighter">Relatório de Viagem Individual</p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <h2 className="text-xl font-bold">RELATÓRIO DE VIAGEM</h2>
+                                                    <p className="font-mono text-xs">ID {(trip.id.substring(0, 8)).toUpperCase()}</p>
+                                                    <p className="text-[10px] mt-1">{format(new Date(trip.end_time), "dd/MM/yyyy HH:mm")}</p>
+                                                </div>
+                                            </div>
+
+                                            {/* Info Grid */}
+                                            <div className="grid grid-cols-2 gap-6 text-sm mb-6">
+                                                <div className="border-b border-gray-300 pb-2">
+                                                    <span className="block text-[10px] uppercase font-bold text-gray-500">Veículo</span>
+                                                    <span className="font-bold text-lg">{car?.model}</span>
+                                                    <span className="text-xs ml-2 text-gray-600">({car?.plate})</span>
+                                                </div>
+                                                <div className="border-b border-gray-300 pb-2">
+                                                    <span className="block text-[10px] uppercase font-bold text-gray-500">Motorista</span>
+                                                    <span className="font-bold text-lg">{driver?.name}</span>
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-4 mb-6 bg-gray-50 p-4 border border-gray-200 rounded">
+                                                <div>
+                                                    <span className="block text-[10px] uppercase font-bold text-gray-500">Saída</span>
+                                                    <span className="font-mono font-bold block">{trip.start_km} km</span>
+                                                    <span className="text-[10px] text-gray-400">{trip.origin || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] uppercase font-bold text-gray-500">Chegada</span>
+                                                    <span className="font-mono font-bold block">{trip.end_km} km</span>
+                                                    <span className="text-[10px] text-gray-400">{trip.destination || '-'}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="block text-[10px] uppercase font-bold text-gray-500">Percorrido</span>
+                                                    <span className="font-mono font-bold text-lg">+{kmPercorridos.toFixed(1)} km</span>
+                                                </div>
+                                            </div>
+
+                                            {trip.observations && (
+                                                <div className="mb-6 border border-gray-300 p-3 rounded">
+                                                    <p className="text-[10px] uppercase font-bold text-gray-500 mb-1">Observações</p>
+                                                    <p className="text-xs">{trip.observations}</p>
+                                                </div>
+                                            )}
+
+                                            {/* Photos */}
+                                            <div className="flex-1 flex flex-col gap-4">
+                                                <p className="text-[10px] uppercase font-bold border-b border-black pb-1">Registros Fotográficos (Odômetro)</p>
+                                                <div className="flex-1 grid grid-cols-2 gap-4 h-full min-h-[200px]">
+                                                    <div className="border border-gray-200 rounded p-2 flex flex-col">
+                                                        <span className="text-[10px] text-center mb-1 uppercase font-bold">Início</span>
+                                                        <div className="flex-1 flex items-center justify-center bg-gray-50 overflow-hidden">
+                                                            {trip.start_odometer_photo ? (
+                                                                <img src={trip.start_odometer_photo} className="max-h-full max-w-full object-contain" alt="Início" />
+                                                            ) : <span className="text-[10px] text-gray-400">Sem foto</span>}
+                                                        </div>
+                                                    </div>
+                                                    <div className="border border-gray-200 rounded p-2 flex flex-col">
+                                                        <span className="text-[10px] text-center mb-1 uppercase font-bold">Fim</span>
+                                                        <div className="flex-1 flex items-center justify-center bg-gray-50 overflow-hidden">
+                                                            {trip.end_odometer_photo ? (
+                                                                <img src={trip.end_odometer_photo} className="max-h-full max-w-full object-contain" alt="Fim" />
+                                                            ) : <span className="text-[10px] text-gray-400">Sem foto</span>}
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Footer */}
+                                            <div className="mt-4 text-[8px] text-gray-400 text-center uppercase border-t border-gray-200 pt-2">
+                                                Gerado em {new Date().toLocaleString('pt-BR')} via Ama Trip System
                                             </div>
                                         </div>
                                     </div>
@@ -646,6 +735,16 @@ const Trip = () => {
                 imageUrl={previewImage}
                 title="Preview do Odômetro"
             />
+            <style dangerouslySetInnerHTML={{
+                __html: `
+                @media print {
+                    body * { visibility: hidden; }
+                    .print\\:hidden { display: none !important; }
+                    /* Show only the printed Trip version */
+                    div.fixed.inset-0.bg-white { visibility: visible !important; display: block !important; position: static !important; }
+                    div.fixed.inset-0.bg-white * { visibility: visible !important; }
+                }
+            ` }} />
         </div>
     );
 };

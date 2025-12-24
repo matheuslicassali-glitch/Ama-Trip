@@ -338,34 +338,35 @@ const ServiceOrder = () => {
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-2 gap-10 mb-8">
-                                        <div className="space-y-4">
-                                            <div className="border-b border-black pb-2">
-                                                <p className="text-[10px] uppercase font-bold">Empresa Solicitante</p>
-                                                <p className="text-lg font-bold">{os.requesting_company}</p>
+                                    <div className="flex flex-col gap-6 mb-8 flex-1">
+                                        <div className="grid grid-cols-2 gap-10">
+                                            <div className="space-y-4">
+                                                <div className="border-b border-black pb-2">
+                                                    <p className="text-[10px] uppercase font-bold">Empresa Solicitante</p>
+                                                    <p className="text-lg font-bold leading-tight">{os.requesting_company}</p>
+                                                </div>
+                                                <div className="border-b border-black pb-2">
+                                                    <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
+                                                    <p className="text-lg font-bold leading-tight">{os.client_name}</p>
+                                                </div>
                                             </div>
-                                            <div className="border-b border-black pb-2">
-                                                <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
-                                                <p className="text-lg font-bold">{os.client_name}</p>
+                                            <div className="border border-black p-3 bg-gray-50">
+                                                <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
+                                                <p className="text-sm leading-snug">{os.description}</p>
                                             </div>
                                         </div>
-                                        <div className="border-2 border-black p-4 bg-gray-50 flex flex-col justify-between">
-                                            <div>
-                                                <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
-                                                <p className="text-sm">{os.description}</p>
-                                            </div>
-                                            <div className="mt-4 border-t border-dashed border-gray-300 pt-2 text-center">
+
+                                        <div className="flex-1 flex flex-col mt-4">
+                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-2">Comprovante de Execução / Anexo</p>
+                                            <div className="flex-1 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 min-h-[300px]">
                                                 {os.photo_url ? (
-                                                    <div className="mt-2">
-                                                        <p className="text-[8px] uppercase text-gray-400 mb-1">Foto Anexada</p>
-                                                        <img
-                                                            src={os.photo_url}
-                                                            alt="Anexo da OS"
-                                                            className="max-h-48 mx-auto object-contain border border-gray-200 rounded"
-                                                        />
-                                                    </div>
+                                                    <img
+                                                        src={os.photo_url}
+                                                        alt="Anexo da OS"
+                                                        className="max-h-[500px] w-auto max-w-full object-contain"
+                                                    />
                                                 ) : (
-                                                    <p className="text-[8px] uppercase text-gray-400">Anexo de Imagem vinculado ao registro digital</p>
+                                                    <p className="text-xs uppercase text-gray-400">Nenhum anexo de imagem vinculado</p>
                                                 )}
                                             </div>
                                         </div>

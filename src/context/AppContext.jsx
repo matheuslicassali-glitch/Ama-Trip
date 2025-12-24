@@ -215,7 +215,13 @@ export const AppProvider = ({ children }) => {
         if (!file) return null;
 
         try {
+            // Check for HEIC
+            if (file.type === 'image/heic' || file.name.toLowerCase().endsWith('.heic')) {
+                alert("Atenção: Imagem HEIC detectada.\n\nComo não foi possível instalar o conversor automático, recomendamos que altere a câmera do celular para 'Mais Compatível' (JPEG) para garantir que todos consigam visualizar as fotos.\n\nA imagem será salva, mas pode não abrir em alguns computadores.");
+            }
+
             const fileExt = file.name.split('.').pop();
+            // Create a unique file name
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
 
             const { error: uploadError, data } = await supabase.storage
