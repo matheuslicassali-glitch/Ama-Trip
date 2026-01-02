@@ -1,58 +1,29 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { ClipboardList, Building2, UserCircle, Calendar, CheckCircle, Printer, FileText, Edit2, Trash2, Eye, X } from 'lucide-react';
+import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText } from 'lucide-react';
 import { format } from 'date-fns';
-import AdminPasswordModal from '../components/AdminPasswordModal';
-import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const ServiceOrder = () => {
-    const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user, uploadImage } = useAppContext();
+    const { serviceOrders, addServiceOrder, loading, user } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
-    const [editingId, setEditingId] = useState(null);
     const [file, setFile] = useState(null);
-    const [previewImage, setPreviewImage] = useState(null);
-    const [showPasswordModal, setShowPasswordModal] = useState(false);
-    const [printingId, setPrintingId] = useState(null);
-
-    const handlePrint = (id) => {
-        setPrintingId(id);
-        setTimeout(() => {
-            window.print();
-            // Optional: reset after print dialog closes (though detection is tricky across browsers)
-            // For now, we leave it or reset it via onAfterPrint if we can, 
-            // but simply setting it allows the CSS to target just this one.
-            // A safer UX is: Print dialog opens, user prints/cancels. 
-            // We can add a listener or just auto-reset after a long timeout, 
-            // but the cleanest for this "inline CSS" hack is to just let the user see the print view 
-            // momentarily or use onafterprint.
-        }, 100);
-    };
-
-    // Reset printing ID when coming back from print preview
-    React.useEffect(() => {
-        const handleAfterPrint = () => {
-            setPrintingId(null);
-        };
-        window.addEventListener('afterprint', handleAfterPrint);
-        return () => window.removeEventListener('afterprint', handleAfterPrint);
-    }, []);
-
-    const [pendingAction, setPendingAction] = useState(null);
     const [formData, setFormData] = useState({
         requesting_company: '',
         client_name: '',
         description: '',
-        photo_url: '',
+        photo_url: '', // Store the URL (either base64/blob for now or remote url)
     });
 
-    const handleFileChange = (e) => {
+    const handleFileChange = async (e) => {
         const selectedFile = e.target.files[0];
         if (selectedFile) {
             setFile(selectedFile);
+
+            // Create local preview
             const reader = new FileReader();
             reader.onloadend = () => {
-                setFormData(prev => ({ ...prev, photo_url: reader.result }));
+                setFormData({ ...formData, photo_url: reader.result });
             };
             reader.readAsDataURL(selectedFile);
         }
@@ -60,75 +31,35 @@ const ServiceOrder = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        let uploadedUrl = formData.photo_url;
-
-        if (file) {
-            try {
-                uploadedUrl = await uploadImage(file, 'service-orders');
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('Erro ao fazer upload da imagem: ' + error.message);
-                return;
-            }
-        }
-
-        const dataToSave = {
-            requesting_company: formData.requesting_company,
-            client_name: formData.client_name,
-            description: formData.description,
-            photo_url: uploadedUrl
-        };
-
         try {
-            if (editingId) {
-                await updateServiceOrder(editingId, dataToSave);
-                setEditingId(null);
-            } else {
-                await addServiceOrder(dataToSave);
+            let finalPhotoUrl = formData.photo_url;
+
+            // If a new file is active, upload it to Supabase
+            if (file) {
+                const fileExt = file.name.split('.').pop();
+                const fileName = `${Date.now()}.${fileExt}`;
+                const filePath = `${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('service-orders')
+                    .upload(filePath, file);
+
+                if (uploadError) throw uploadError;
+
+                const { data } = supabase.storage
+                    .from('service-orders')
+                    .getPublicUrl(filePath);
+
+                finalPhotoUrl = data.publicUrl;
             }
 
+            await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
             setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
             setFile(null);
             setIsCreating(false);
         } catch (error) {
-            console.error('Save error:', error);
-            alert('Erro ao salvar: ' + error.message);
+            alert('Erro ao criar Ordem de Serviço: ' + error.message);
         }
-    };
-
-    const handleEdit = (os) => {
-        setPendingAction({ type: 'edit', data: os });
-        setShowPasswordModal(true);
-    };
-
-    const handleDelete = (id) => {
-        setPendingAction({ type: 'delete', data: id });
-        setShowPasswordModal(true);
-    };
-
-    const executeAction = async () => {
-        if (!pendingAction) return;
-
-        if (pendingAction.type === 'edit') {
-            const os = pendingAction.data;
-            setFormData({
-                requesting_company: os.requesting_company,
-                client_name: os.client_name,
-                description: os.description,
-                photo_url: os.photo_url || ''
-            });
-            setEditingId(os.id);
-            setIsCreating(true);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (pendingAction.type === 'delete') {
-            try {
-                await deleteServiceOrder(pendingAction.data);
-            } catch (error) {
-                console.error('Delete error:', error);
-                alert('Erro ao excluir: ' + error.message);
-            }
-        }
-        setPendingAction(null);
     };
 
     if (loading) {
@@ -142,7 +73,6 @@ const ServiceOrder = () => {
     return (
         <div className="space-y-8 animate-in fade-in duration-500 pb-20">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 print:hidden">
-                {/* ... (existing header content) */}
                 <div>
                     <h2 className="text-3xl font-bold flex items-center gap-3">
                         <ClipboardList className="text-primary" />
@@ -151,16 +81,7 @@ const ServiceOrder = () => {
                     <p className="text-muted-foreground">Gestão de solicitações e ordens de trabalho.</p>
                 </div>
                 <button
-                    onClick={() => {
-                        if (isCreating) {
-                            setIsCreating(false);
-                            setEditingId(null);
-                            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
-                            setFile(null);
-                        } else {
-                            setIsCreating(true);
-                        }
-                    }}
+                    onClick={() => setIsCreating(!isCreating)}
                     className="accent-gradient text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all"
                 >
                     {isCreating ? 'CANCELAR' : 'NOVA ORDEM DE SERVIÇO'}
@@ -169,10 +90,7 @@ const ServiceOrder = () => {
 
             {isCreating && (
                 <form onSubmit={handleSubmit} className="glass-morphism p-8 rounded-2xl space-y-6 animate-in slide-in-from-top-4 print:hidden max-w-2xl mx-auto">
-                    {/* ... (existing form content) ... */}
-                    <h3 className="text-xl font-bold mb-4">
-                        {editingId ? 'Editar Ordem de Serviço' : 'Dados da Solicitação'}
-                    </h3>
+                    <h3 className="text-xl font-bold mb-4">Dados da Solicitação</h3>
 
                     <div className="grid md:grid-cols-2 gap-6">
                         <div className="space-y-2">
@@ -224,32 +142,7 @@ const ServiceOrder = () => {
                             {formData.photo_url ? (
                                 <div className="text-center">
                                     <img src={formData.photo_url} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
-                                    <div className="flex gap-2 justify-center mt-3">
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setPreviewImage(formData.photo_url);
-                                            }}
-                                            className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg hover:bg-blue-500/30 transition-colors flex items-center gap-2"
-                                        >
-                                            <Eye size={16} />
-                                            Ver Preview
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.preventDefault();
-                                                setFormData({ ...formData, photo_url: '' });
-                                                setFile(null);
-                                            }}
-                                            className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg hover:bg-red-500/30 transition-colors flex items-center gap-2"
-                                        >
-                                            <X size={16} />
-                                            Remover
-                                        </button>
-                                    </div>
-                                    <p className="text-xs text-primary font-bold mt-2">Clique na área para alterar</p>
+                                    <p className="text-xs text-primary font-bold">Imagem selecionada (Clique para alterar)</p>
                                 </div>
                             ) : (
                                 <>
@@ -257,7 +150,7 @@ const ServiceOrder = () => {
                                     <p className="text-sm text-muted-foreground">Clique para tirar foto ou anexar documento</p>
                                 </>
                             )}
-                            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
 
@@ -266,7 +159,7 @@ const ServiceOrder = () => {
                         className="w-full bg-primary py-4 rounded-xl font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center space-x-2"
                     >
                         <CheckCircle size={20} />
-                        <span>{editingId ? 'ATUALIZAR ORDEM DE SERVIÇO' : 'GERAR ORDEM DE SERVIÇO'}</span>
+                        <span>GERAR ORDEM DE SERVIÇO</span>
                     </button>
                 </form>
             )}
@@ -308,119 +201,89 @@ const ServiceOrder = () => {
                                         <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Descrição do Serviço</p>
                                         <p className="text-sm leading-relaxed text-foreground/90">{os.description}</p>
                                     </div>
+                                </div>
 
-                                    {os.photo_url && (
-                                        <div className="mt-4">
-                                            <p className="text-xs text-muted-foreground uppercase font-bold mb-2">Comprovante Anexado</p>
-                                            <div className="relative group/img">
-                                                <img
-                                                    src={os.photo_url}
-                                                    alt="Comprovante"
-                                                    className="max-h-48 rounded-xl border border-white/10 cursor-pointer hover:opacity-80 transition-opacity"
-                                                    onClick={() => setPreviewImage(os.photo_url)}
-                                                />
-                                                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover/img:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
-                                                    <Eye className="text-white" size={32} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    <div className="flex gap-2 print:hidden mt-4">
-                                        <button
-                                            onClick={() => handlePrint(os.id)}
-                                            className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all"
-                                            title="Imprimir OS"
-                                        >
-                                            <Printer size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleEdit(os)}
-                                            className="p-3 bg-white/5 rounded-xl hover:bg-blue-500/20 text-muted-foreground hover:text-blue-400 transition-all"
-                                            title="Editar OS"
-                                        >
-                                            <Edit2 size={20} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(os.id)}
-                                            className="p-3 bg-white/5 rounded-xl hover:bg-red-500/20 text-muted-foreground hover:text-red-400 transition-all"
-                                            title="Excluir OS"
-                                        >
-                                            <Trash2 size={20} />
-                                        </button>
+                                <div className="flex flex-col justify-between items-end">
+                                    <button
+                                        onClick={() => window.print()}
+                                        className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all print:hidden"
+                                        title="Imprimir OS"
+                                    >
+                                        <Printer size={20} />
+                                    </button>
+                                    <div className="text-right">
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${os.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'} uppercase font-bold mt-2 inline-block`}>
+                                            {os.status === 'pending' ? 'Pendente' : 'Finalizado'}
+                                        </span>
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Print Version of the Card (Only renders if this card is being printed) */}
-                            {printingId === os.id && (
-                                <div className="hidden print:block fixed inset-0 bg-white text-black z-[1000] overflow-hidden">
-                                    <div className="w-full h-full p-8 flex flex-col box-border">
-                                        {/* Header - Compact */}
-                                        <div className="flex justify-between items-center border-b-2 border-black pb-4 mb-6">
+                            {/* Print Version of the Card (Hidden on Screen) */}
+                            <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
+                                <div className="border-2 border-black p-8 h-full flex flex-col">
+                                    <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-6">
+                                        <div>
+                                            <h1 className="text-3xl font-black italic">AMA TRIP</h1>
+                                            <p className="text-xs uppercase tracking-tighter">Gestão Logística e Transportes</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <h2 className="text-2xl font-bold">ORDEM DE SERVIÇO</h2>
+                                            <p className="font-mono text-sm">Nº {(os.id.substring(0, 8)).toUpperCase()}</p>
+                                            <p className="text-xs mt-1">{format(new Date(os.created_at), "dd/MM/yyyy HH:mm")}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-2 gap-10 mb-8">
+                                        <div className="space-y-4">
+                                            <div className="border-b border-black pb-2">
+                                                <p className="text-[10px] uppercase font-bold">Empresa Solicitante</p>
+                                                <p className="text-lg font-bold">{os.requesting_company}</p>
+                                            </div>
+                                            <div className="border-b border-black pb-2">
+                                                <p className="text-[10px] uppercase font-bold">Cliente / Destino</p>
+                                                <p className="text-lg font-bold">{os.client_name}</p>
+                                            </div>
+                                            {/* Status Block Removed for Print View */}
+                                        </div>
+                                        <div className="border-2 border-black p-4 bg-gray-50 flex flex-col justify-between">
                                             <div>
-                                                <h1 className="text-3xl font-black italic">AMA TRIP</h1>
-                                                <p className="text-[10px] uppercase tracking-tighter">Relatório de Serviço</p>
+                                                <p className="text-[10px] uppercase font-bold mb-2">Descrição do Serviço / Notas</p>
+                                                <p className="text-sm">{os.description}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <h2 className="text-xl font-bold uppercase">Ordem de Serviço</h2>
-                                                <p className="font-mono text-sm">#{os.id.substring(0, 8).toUpperCase()}</p>
-                                                <p className="text-xs">{format(new Date(os.created_at), "dd/MM/yyyy HH:mm")}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Content Grid - Better spacing */}
-                                        <div className="flex flex-col gap-4 mb-6">
-                                            <div className="grid grid-cols-2 gap-8">
-                                                <div className="border-b border-gray-300 pb-2">
-                                                    <p className="text-[10px] uppercase font-bold text-gray-500">Empresa Solicitante</p>
-                                                    <p className="text-xl font-bold truncate">{os.requesting_company}</p>
-                                                </div>
-                                                <div className="border-b border-gray-300 pb-2">
-                                                    <p className="text-[10px] uppercase font-bold text-gray-500">Cliente / Destino</p>
-                                                    <p className="text-xl font-bold truncate">{os.client_name}</p>
-                                                </div>
-                                            </div>
-
-                                            <div className="bg-gray-50 p-4 border border-gray-200 rounded-lg">
-                                                <p className="text-[10px] uppercase font-bold text-gray-500 mb-2">Descrição do Serviço / Observações</p>
-                                                <p className="text-sm leading-relaxed whitespace-pre-line">{os.description}</p>
-                                            </div>
-                                        </div>
-
-                                        {/* Image Section - Main Focus */}
-                                        <div className="flex-1 flex flex-col min-h-0">
-                                            <p className="text-[10px] uppercase font-bold border-b border-black mb-2 pb-1">Anexos / Comprovantes</p>
-                                            <div className="flex-1 border-2 border-dashed border-gray-200 rounded-lg flex items-center justify-center bg-gray-50 p-4 overflow-hidden relative">
+                                            <div className="mt-4 border-t border-dashed border-gray-300 pt-2 text-center">
                                                 {os.photo_url ? (
-                                                    <img
-                                                        src={os.photo_url}
-                                                        alt="Anexo"
-                                                        className="absolute inset-0 w-full h-full object-contain p-4"
-                                                    />
-                                                ) : (
-                                                    <div className="text-center text-gray-400">
-                                                        <FileText size={48} className="mx-auto opacity-20 mb-2" />
-                                                        <p className="text-xs uppercase">Nenhum registro fotográfico anexado</p>
+                                                    <div className="mt-2">
+                                                        <p className="text-[8px] uppercase text-gray-400 mb-1">Foto Anexada</p>
+                                                        <img
+                                                            src={os.photo_url}
+                                                            alt="Anexo da OS"
+                                                            className="max-h-48 mx-auto object-contain border border-gray-200 rounded"
+                                                        />
                                                     </div>
+                                                ) : (
+                                                    <p className="text-[8px] uppercase text-gray-400">Anexo de Imagem vinculado ao registro digital</p>
                                                 )}
                                             </div>
                                         </div>
+                                    </div>
 
-                                        {/* Footer / Signatures - Compact at bottom */}
-                                        <div className="mt-6 pt-4 border-t-2 border-black grid grid-cols-2 gap-12">
-                                            <div className="text-center">
-                                                <div className="h-8 border-b border-black/50 mb-1"></div>
-                                                <p className="text-[10px] uppercase font-bold">Assinatura Solicitante</p>
-                                            </div>
-                                            <div className="text-center">
-                                                <div className="h-8 border-b border-black/50 mb-1"></div>
-                                                <p className="text-[10px] uppercase font-bold">Assinatura Motorista / Responsável</p>
-                                            </div>
+                                    <div className="mt-auto grid grid-cols-2 gap-10 text-center text-xs">
+                                        <div className="border-t border-black pt-4">
+                                            <p className="font-bold">Assinatura Solicitante</p>
+                                            <p className="text-[8px] mt-1 italic">Autorizo a execução do serviço</p>
+                                        </div>
+                                        <div className="border-t border-black pt-4">
+                                            <p className="font-bold">Assinatura Prestador / Motorista</p>
+                                            <p className="text-[8px] mt-1 italic">Serviço concluído conforme acima</p>
                                         </div>
                                     </div>
+
+                                    <div className="mt-8 text-[8px] text-gray-400 text-center uppercase tracking-widest">
+                                        AMA TRIP - Gerado eletronicamente em {new Date().toLocaleString('pt-BR')}
+                                    </div>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     ))
                 ) : (
@@ -432,46 +295,13 @@ const ServiceOrder = () => {
                 )}
             </div>
 
-            <AdminPasswordModal
-                isOpen={showPasswordModal}
-                onClose={() => {
-                    setShowPasswordModal(false);
-                    setPendingAction(null);
-                }}
-                onSuccess={executeAction}
-                title="Autorização Necessária"
-            />
-
-            <ImagePreviewModal
-                isOpen={!!previewImage}
-                onClose={() => setPreviewImage(null)}
-                imageUrl={previewImage}
-                title="Preview do Comprovante"
-            />
-
             <style dangerouslySetInnerHTML={{
                 __html: `
                 @media print {
                     body * { visibility: hidden; }
                     .print\\:hidden { display: none !important; }
-                    
-                    /* Reset margins */
-                    @page { margin: 0mm; size: auto; }
-                    html, body { height: 100%; margin: 0 !important; padding: 0 !important; overflow: visible !important; }
-                    
-                    /* Force Print Container to show */
-                    div.fixed.inset-0.bg-white { 
-                        visibility: visible !important; 
-                        display: block !important; 
-                        position: absolute !important; 
-                        left: 0 !important;
-                        top: 0 !important;
-                        width: 100% !important;
-                        height: 100% !important;
-                        z-index: 9999 !important;
-                        background: white !important;
-                        overflow: visible !important;
-                    }
+                    /* Show only the printed OS version */
+                    div.fixed.inset-0.bg-white { visibility: visible !important; display: block !important; position: static !important; }
                     div.fixed.inset-0.bg-white * { visibility: visible !important; }
                 }
             ` }} />
