@@ -234,10 +234,10 @@ const Trip = () => {
                             ) : (
                                 <>
                                     <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                    <p className="text-sm text-muted-foreground">Toque para carregar ou tirar foto</p>
+                                    <p className="text-sm text-muted-foreground">Toque para carregar (Câmera ou Galeria)</p>
                                 </>
                             )}
-                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleStartFileChange} />
+                            <input type="file" accept="image/*" className="hidden" onChange={handleStartFileChange} />
                         </label>
                     </div>
 
@@ -335,10 +335,10 @@ const Trip = () => {
                         ) : (
                             <>
                                 <Camera size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                <p className="text-sm text-muted-foreground">Toque para carregar a foto final do odômetro</p>
+                                <p className="text-sm text-muted-foreground">Toque para carregar (Câmera ou Galeria)</p>
                             </>
                         )}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleEndFileChange} />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleEndFileChange} />
                     </label>
                 </div>
 

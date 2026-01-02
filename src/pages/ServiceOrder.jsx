@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import { supabase } from '../lib/supabase';
-import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText } from 'lucide-react';
+import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText, Eye, Image as ImageIcon } from 'lucide-react';
 import { format } from 'date-fns';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const ServiceOrder = () => {
     const { serviceOrders, addServiceOrder, loading, user } = useAppContext();
@@ -14,6 +15,7 @@ const ServiceOrder = () => {
         description: '',
         photo_url: '', // Store the URL (either base64/blob for now or remote url)
     });
+    const [previewImage, setPreviewImage] = useState(null);
 
     const handleFileChange = async (e) => {
         const selectedFile = e.target.files[0];
@@ -147,10 +149,10 @@ const ServiceOrder = () => {
                             ) : (
                                 <>
                                     <FileText size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                    <p className="text-sm text-muted-foreground">Clique para tirar foto ou anexar documento</p>
+                                    <p className="text-sm text-muted-foreground">Clique para tirar foto ou galeria</p>
                                 </>
                             )}
-                            <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                            <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                         </label>
                     </div>
 
@@ -211,6 +213,15 @@ const ServiceOrder = () => {
                                     >
                                         <Printer size={20} />
                                     </button>
+                                    {os.photo_url && (
+                                        <button
+                                            onClick={() => setPreviewImage(os.photo_url)}
+                                            className="p-3 bg-white/5 rounded-xl hover:bg-primary/20 text-muted-foreground hover:text-primary transition-all mt-2"
+                                            title="Ver Foto"
+                                        >
+                                            <Eye size={20} />
+                                        </button>
+                                    )}
                                     <div className="text-right">
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${os.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'} uppercase font-bold mt-2 inline-block`}>
                                             {os.status === 'pending' ? 'Pendente' : 'Finalizado'}
@@ -220,7 +231,7 @@ const ServiceOrder = () => {
                             </div>
 
                             {/* Print Version of the Card (Hidden on Screen) */}
-                            <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
+                            < div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]" >
                                 <div className="border-2 border-black p-8 h-full flex flex-col">
                                     <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-6">
                                         <div>
@@ -293,7 +304,7 @@ const ServiceOrder = () => {
                         <p className="text-sm text-muted-foreground/60 mt-1">Clique em 'Nova Ordem de Serviço' para começar.</p>
                     </div>
                 )}
-            </div>
+            </div >
 
             <style dangerouslySetInnerHTML={{
                 __html: `
@@ -305,7 +316,14 @@ const ServiceOrder = () => {
                     div.fixed.inset-0.bg-white * { visibility: visible !important; }
                 }
             ` }} />
-        </div>
+
+            <ImagePreviewModal
+                isOpen={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                imageUrl={previewImage}
+                title="Visualizar Ordem de Serviço"
+            />
+        </div >
     );
 };
 

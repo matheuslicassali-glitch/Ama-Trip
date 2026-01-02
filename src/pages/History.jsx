@@ -1,9 +1,12 @@
 import React from 'react';
 import { useAppContext } from '../context/AppContext';
-import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer } from 'lucide-react';
+import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer, Eye, Image as ImageIcon } from 'lucide-react';
+import { useState } from 'react';
+import ImagePreviewModal from '../components/ImagePreviewModal';
 
 const History = () => {
     const { trips } = useAppContext();
+    const [previewImage, setPreviewImage] = useState(null);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -59,6 +62,25 @@ const History = () => {
                                             <p className="font-mono text-lg">{trip.end_km} km</p>
                                         </div>
                                     </div>
+
+                                    <div className="flex gap-2">
+                                        {trip.start_photo_url && (
+                                            <button
+                                                onClick={() => setPreviewImage(trip.start_photo_url)}
+                                                className="text-xs bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-500/20 transition-colors"
+                                            >
+                                                <Eye size={12} /> Foto Início
+                                            </button>
+                                        )}
+                                        {trip.end_photo_url && (
+                                            <button
+                                                onClick={() => setPreviewImage(trip.end_photo_url)}
+                                                className="text-xs bg-green-500/10 text-green-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-green-500/20 transition-colors"
+                                            >
+                                                <Eye size={12} /> Foto Fim
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <div className="flex flex-col md:items-end gap-3 pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
@@ -95,6 +117,13 @@ const History = () => {
                     <p className="text-sm text-muted-foreground/60 mt-1">Inicie sua primeira viagem para ver o histórico aqui.</p>
                 </div>
             )}
+
+            <ImagePreviewModal
+                isOpen={!!previewImage}
+                onClose={() => setPreviewImage(null)}
+                imageUrl={previewImage}
+                title="Foto da Viagem"
+            />
         </div>
     );
 };

@@ -171,10 +171,10 @@ const Fuel = () => {
                         ) : (
                             <>
                                 <Receipt size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                <p className="text-sm text-muted-foreground">Carregar foto do comprovante para contabilidade</p>
+                                <p className="text-sm text-muted-foreground">Carregar foto (Câmera ou Galeria)</p>
                             </>
                         )}
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
                     </label>
                 </div>
 
