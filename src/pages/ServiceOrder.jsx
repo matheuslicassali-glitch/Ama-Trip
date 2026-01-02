@@ -1,7 +1,10 @@
+import React, { useState } from 'react';
+import { useAppContext } from '../context/AppContext';
+import { supabase } from '../lib/supabase';
+import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText, Eye, Image as ImageIcon, Trash2, Edit, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import AdminPasswordModal from '../components/AdminPasswordModal';
-import { Trash2, Edit } from 'lucide-react';
 
 const ServiceOrder = () => {
     const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user } = useAppContext();

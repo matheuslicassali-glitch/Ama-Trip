@@ -1,5 +1,6 @@
-import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer, Eye, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer, Eye, Image as ImageIcon, Trash2, User, Navigation } from 'lucide-react';
 import { useState } from 'react';
+import { useAppContext } from '../context/AppContext';
 import ImagePreviewModal from '../components/ImagePreviewModal';
 import AdminPasswordModal from '../components/AdminPasswordModal';
 
@@ -149,5 +150,4 @@ const History = () => {
     );
 };
 
-import { User, Navigation } from 'lucide-react';
 export default History;
