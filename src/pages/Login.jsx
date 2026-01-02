@@ -66,7 +66,6 @@ const Login = () => {
                     </button>
 
                     <div className="mt-6 text-center text-xs text-blue-300/40">
-                        <p>Dica: Use admin / 123 para administrador</p>
                     </div>
                 </form>
             </div>
