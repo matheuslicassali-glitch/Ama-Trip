@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import { Fuel as FuelIcon, Receipt, Camera, CheckCircle } from 'lucide-react';
+import { Fuel as FuelIcon, Receipt, Camera, CheckCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 const Fuel = () => {
@@ -162,20 +162,34 @@ const Fuel = () => {
 
                 <div className="space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">Foto do Comprovante</label>
-                    <label className={`block border-2 border-dashed ${preview ? 'border-primary bg-primary/10' : 'border-white/10'} rounded-xl p-8 text-center hover:bg-white/5 transition-colors cursor-pointer group relative overflow-hidden`}>
-                        {preview ? (
-                            <div className="text-center">
-                                <img src={preview} alt="Preview" className="max-h-32 mx-auto rounded mb-2 shadow-lg" />
-                                <p className="text-xs text-primary font-bold">Imagem selecionada (Clique para alterar)</p>
+                    {preview ? (
+                        <div className="relative rounded-xl overflow-hidden border-2 border-primary/50 group">
+                            <img src={preview} alt="Preview" className="w-full h-64 object-contain bg-black/50" />
+                            <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    type="button"
+                                    onClick={() => { setFile(null); setPreview(null); }}
+                                    className="bg-red-500/20 text-red-500 p-4 rounded-full hover:bg-red-500 hover:text-white transition-all"
+                                >
+                                    <Trash2 size={24} />
+                                </button>
+                                <p className="text-white text-sm mt-2 font-medium">Remover Foto</p>
                             </div>
-                        ) : (
-                            <>
-                                <Receipt size={32} className="mx-auto mb-2 text-muted-foreground group-hover:text-primary transition-colors" />
-                                <p className="text-sm text-muted-foreground">Carregar foto (Câmera ou Galeria)</p>
-                            </>
-                        )}
-                        <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
-                    </label>
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-2 gap-4">
+                            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/10 rounded-xl hover:bg-white/5 cursor-pointer transition-all active:scale-95 bg-white/5">
+                                <Camera size={32} className="mb-2 text-primary" />
+                                <span className="text-sm font-bold">Usar Câmera</span>
+                                <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileChange} />
+                            </label>
+                            <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-white/10 rounded-xl hover:bg-white/5 cursor-pointer transition-all active:scale-95 bg-white/5">
+                                <ImageIcon size={32} className="mb-2 text-blue-400" />
+                                <span className="text-sm font-bold">Abrir Galeria</span>
+                                <input type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
+                            </label>
+                        </div>
+                    )}
                 </div>
 
                 <button
