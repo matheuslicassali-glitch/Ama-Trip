@@ -310,7 +310,7 @@ const ServiceOrder = () => {
                             </div>
 
                             {/* Print Version of the Card (Hidden on Screen) */}
-                            < div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]" >
+                            <div className="hidden print:block fixed inset-0 bg-white text-black p-10 z-[1000]">
                                 <div className="border-2 border-black p-8 h-full flex flex-col">
                                     <div className="flex justify-between items-start border-b-2 border-black pb-6 mb-6">
                                         <div>
