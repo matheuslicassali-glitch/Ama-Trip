@@ -1,12 +1,13 @@
-import React from 'react';
-import { useAppContext } from '../context/AppContext';
-import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer, Eye, Image as ImageIcon } from 'lucide-react';
+import { History as HistoryIcon, MapPin, Calendar, ArrowRight, Printer, Eye, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import AdminPasswordModal from '../components/AdminPasswordModal';
 
 const History = () => {
-    const { trips } = useAppContext();
+    const { trips, deleteTrip } = useAppContext();
     const [previewImage, setPreviewImage] = useState(null);
+    const [showAdminModal, setShowAdminModal] = useState(false);
+    const [tripToDelete, setTripToDelete] = useState(null);
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
@@ -63,13 +64,13 @@ const History = () => {
                                         </div>
                                     </div>
 
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 items-center">
                                         {trip.start_photo_url && (
                                             <button
                                                 onClick={() => setPreviewImage(trip.start_photo_url)}
                                                 className="text-xs bg-blue-500/10 text-blue-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-500/20 transition-colors"
                                             >
-                                                <Eye size={12} /> Foto Início
+                                                <Eye size={12} /> Início
                                             </button>
                                         )}
                                         {trip.end_photo_url && (
@@ -77,9 +78,20 @@ const History = () => {
                                                 onClick={() => setPreviewImage(trip.end_photo_url)}
                                                 className="text-xs bg-green-500/10 text-green-400 px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-green-500/20 transition-colors"
                                             >
-                                                <Eye size={12} /> Foto Fim
+                                                <Eye size={12} /> Fim
                                             </button>
                                         )}
+                                        <div className="h-4 w-[1px] bg-white/10 mx-1"></div>
+                                        <button
+                                            onClick={() => {
+                                                setTripToDelete(trip.id);
+                                                setShowAdminModal(true);
+                                            }}
+                                            className="p-1.5 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                                            title="Excluir Registro"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
                                     </div>
                                 </div>
 
@@ -123,6 +135,15 @@ const History = () => {
                 onClose={() => setPreviewImage(null)}
                 imageUrl={previewImage}
                 title="Foto da Viagem"
+            />
+            <AdminPasswordModal
+                isOpen={showAdminModal}
+                onClose={() => setShowAdminModal(false)}
+                onSuccess={async () => {
+                    await deleteTrip(tripToDelete);
+                    alert("Registro de viagem excluído.");
+                }}
+                title="Confirmar Exclusão de Viagem"
             />
         </div>
     );

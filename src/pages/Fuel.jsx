@@ -1,10 +1,15 @@
 import React, { useState } from 'react';
+import { History } from 'lucide-react';
 import { useAppContext } from '../context/AppContext';
-import { Fuel as FuelIcon, Receipt, Camera, CheckCircle, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Fuel as FuelIcon, Receipt, Camera, CheckCircle, Image as ImageIcon, Trash2, Edit } from 'lucide-react';
+import AdminPasswordModal from '../components/AdminPasswordModal';
 import { supabase } from '../lib/supabase';
 
 const Fuel = () => {
-    const { cars, addFuelRecord, loading } = useAppContext();
+    const { cars, addFuelRecord, fuelRecords, updateFuelRecord, deleteFuelRecord, loading } = useAppContext();
+    const [showAdminModal, setShowAdminModal] = useState(false);
+    const [actionToConfirm, setActionToConfirm] = useState(null); // { type: 'delete'|'edit', payload: any }
+    const [editingId, setEditingId] = useState(null);
     const [formData, setFormData] = useState({
         car_id: '',
         liters: '',
@@ -51,14 +56,26 @@ const Fuel = () => {
                 photoUrl = data.publicUrl;
             }
 
-            await addFuelRecord({
-                car_id: formData.car_id,
-                liters: parseFloat(formData.liters),
-                value: parseFloat(formData.value),
-                km: parseFloat(formData.km),
-                date: new Date().toISOString(),
-                receipt_url: photoUrl
-            });
+            if (editingId) {
+                await updateFuelRecord(editingId, {
+                    car_id: formData.car_id,
+                    liters: parseFloat(formData.liters),
+                    value: parseFloat(formData.value),
+                    km: parseFloat(formData.km),
+                    receipt_url: photoUrl
+                });
+                alert("Abastecimento atualizado!");
+                setEditingId(null);
+            } else {
+                await addFuelRecord({
+                    car_id: formData.car_id,
+                    liters: parseFloat(formData.liters),
+                    value: parseFloat(formData.value),
+                    km: parseFloat(formData.km),
+                    date: new Date().toISOString(),
+                    receipt_url: photoUrl
+                });
+            }
 
             setSubmitted(true);
             setTimeout(() => {
@@ -197,9 +214,71 @@ const Fuel = () => {
                     className="w-full accent-gradient py-4 rounded-xl font-bold text-white shadow-lg shadow-blue-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center space-x-2"
                 >
                     <FuelIcon size={20} />
-                    <span>REGISTRAR ABASTECIMENTO</span>
+                    <span>{editingId ? 'SALVAR ALTERAÇÕES' : 'REGISTRAR ABASTECIMENTO'}</span>
                 </button>
             </form>
+
+            {/* List of Recent Fuel Records */}
+            <div className="space-y-4">
+                <h3 className="text-xl font-bold flex items-center gap-2 border-b border-white/10 pb-2">
+                    <History size={20} className="text-primary" />
+                    Últimos Abastecimentos
+                </h3>
+                {fuelRecords.slice(0, 5).map(record => (
+                    <div key={record.id} className="glass-morphism p-4 rounded-xl flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                            <div className="p-2 bg-green-500/10 rounded-lg text-green-500">
+                                <FuelIcon size={20} />
+                            </div>
+                            <div>
+                                <p className="font-bold">{cars.find(c => c.id === record.car_id)?.model || 'Carro'}</p>
+                                <p className="text-xs text-muted-foreground">{new Date(record.date).toLocaleDateString()} • {record.liters}L • R$ {record.value}</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => {
+                                    setActionToConfirm({ type: 'edit', payload: record });
+                                    setShowAdminModal(true);
+                                }}
+                                className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                            >
+                                <Edit size={16} />
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setActionToConfirm({ type: 'delete', payload: record.id });
+                                    setShowAdminModal(true);
+                                }}
+                                className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <AdminPasswordModal
+                isOpen={showAdminModal}
+                onClose={() => setShowAdminModal(false)}
+                onSuccess={() => {
+                    if (actionToConfirm?.type === 'delete') {
+                        deleteFuelRecord(actionToConfirm.payload);
+                    } else if (actionToConfirm?.type === 'edit') {
+                        const rec = actionToConfirm.payload;
+                        setFormData({
+                            car_id: rec.car_id,
+                            liters: rec.liters,
+                            value: rec.value,
+                            km: rec.km
+                        });
+                        setEditingId(rec.id);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                }}
+                title={actionToConfirm?.type === 'delete' ? "Excluir Abastecimento" : "Editar Abastecimento"}
+            />
         </div>
     );
 };

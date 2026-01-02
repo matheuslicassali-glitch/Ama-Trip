@@ -1,12 +1,10 @@
-import React, { useState } from 'react';
-import { useAppContext } from '../context/AppContext';
-import { supabase } from '../lib/supabase';
-import { ClipboardList, Building2, UserCircle, Briefcase, Calendar, CheckCircle, Printer, FileText, Eye, Image as ImageIcon, Trash2, Camera } from 'lucide-react';
 import { format } from 'date-fns';
 import ImagePreviewModal from '../components/ImagePreviewModal';
+import AdminPasswordModal from '../components/AdminPasswordModal';
+import { Trash2, Edit } from 'lucide-react';
 
 const ServiceOrder = () => {
-    const { serviceOrders, addServiceOrder, loading, user } = useAppContext();
+    const { serviceOrders, addServiceOrder, updateServiceOrder, deleteServiceOrder, loading, user } = useAppContext();
     const [isCreating, setIsCreating] = useState(false);
     const [file, setFile] = useState(null);
     const [formData, setFormData] = useState({
@@ -16,6 +14,9 @@ const ServiceOrder = () => {
         photo_url: '', // Store the URL (either base64/blob for now or remote url)
     });
     const [previewImage, setPreviewImage] = useState(null);
+    const [editingId, setEditingId] = useState(null);
+    const [showAdminModal, setShowAdminModal] = useState(false);
+    const [actionToConfirm, setActionToConfirm] = useState(null); // { type: 'delete'|'edit', payload: any }
 
     const handleFileChange = async (e) => {
         const selectedFile = e.target.files[0];
@@ -55,12 +56,52 @@ const ServiceOrder = () => {
                 finalPhotoUrl = data.publicUrl;
             }
 
-            await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
+            if (editingId) {
+                await updateServiceOrder(editingId, { ...formData, photo_url: finalPhotoUrl });
+                alert('Ordem de Serviço atualizada com sucesso!');
+                setEditingId(null);
+            } else {
+                await addServiceOrder({ ...formData, photo_url: finalPhotoUrl });
+            }
+
             setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
             setFile(null);
             setIsCreating(false);
         } catch (error) {
-            alert('Erro ao criar Ordem de Serviço: ' + error.message);
+            alert('Erro ao salvar Ordem de Serviço: ' + error.message);
+        }
+    };
+
+    const handleEditClick = (os) => {
+        setActionToConfirm({ type: 'edit', payload: os });
+        setShowAdminModal(true);
+    };
+
+    const handleDeleteClick = (id) => {
+        setActionToConfirm({ type: 'delete', payload: id });
+        setShowAdminModal(true);
+    };
+
+    const onAdminSuccess = async () => {
+        if (actionToConfirm?.type === 'edit') {
+            const os = actionToConfirm.payload;
+            setFormData({
+                requesting_company: os.requesting_company,
+                client_name: os.client_name,
+                description: os.description,
+                photo_url: os.photo_url || ''
+            });
+            setEditingId(os.id);
+            setIsCreating(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (actionToConfirm?.type === 'delete') {
+            try {
+                await deleteServiceOrder(actionToConfirm.payload);
+                alert('Ordem de Serviço removida.');
+            } catch (error) {
+                console.error("Erro ao deletar:", error);
+                alert("Erro ao deletar OS.");
+            }
         }
     };
 
@@ -83,7 +124,13 @@ const ServiceOrder = () => {
                     <p className="text-muted-foreground">Gestão de solicitações e ordens de trabalho.</p>
                 </div>
                 <button
-                    onClick={() => setIsCreating(!isCreating)}
+                    onClick={() => {
+                        setIsCreating(!isCreating);
+                        if (isCreating && editingId) {
+                            setEditingId(null);
+                            setFormData({ requesting_company: '', client_name: '', description: '', photo_url: '' });
+                        }
+                    }}
                     className="accent-gradient text-white px-6 py-3 rounded-xl font-bold shadow-lg shadow-blue-500/20 hover:scale-[1.02] transition-all"
                 >
                     {isCreating ? 'CANCELAR' : 'NOVA ORDEM DE SERVIÇO'}
@@ -175,7 +222,7 @@ const ServiceOrder = () => {
                         className="w-full bg-primary py-4 rounded-xl font-bold text-white shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all flex items-center justify-center space-x-2"
                     >
                         <CheckCircle size={20} />
-                        <span>GERAR ORDEM DE SERVIÇO</span>
+                        <span>{editingId ? 'SALVAR ALTERAÇÕES' : 'GERAR ORDEM DE SERVIÇO'}</span>
                     </button>
                 </form>
             )}
@@ -236,6 +283,24 @@ const ServiceOrder = () => {
                                             <Eye size={20} />
                                         </button>
                                     )}
+
+                                    <div className="flex gap-2 mt-2">
+                                        <button
+                                            onClick={() => handleEditClick(os)}
+                                            className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-colors"
+                                            title="Editar"
+                                        >
+                                            <Edit size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteClick(os.id)}
+                                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500/20 transition-colors"
+                                            title="Excluir"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+
                                     <div className="text-right">
                                         <span className={`text-[10px] px-2 py-0.5 rounded-full ${os.status === 'pending' ? 'bg-orange-500/20 text-orange-400' : 'bg-green-500/20 text-green-400'} uppercase font-bold mt-2 inline-block`}>
                                             {os.status === 'pending' ? 'Pendente' : 'Finalizado'}
@@ -337,7 +402,13 @@ const ServiceOrder = () => {
                 imageUrl={previewImage}
                 title="Visualizar Ordem de Serviço"
             />
-        </div >
+            <AdminPasswordModal
+                isOpen={showAdminModal}
+                onClose={() => setShowAdminModal(false)}
+                onSuccess={onAdminSuccess}
+                title={actionToConfirm?.type === 'delete' ? "Confirmar Exclusão" : "Confirmar Edição"}
+            />
+        </div>
     );
 };
 
